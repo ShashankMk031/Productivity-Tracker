@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Productivity Tracker - Monthly Calendar</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/strategic.css" />
+  <style>
+    /* Dedicated Calendar Visual Stylings */
+    .calendar-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 24px;
+    }
+    
+    .calendar-grid-container {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      position: relative;
+    }
+    
+    .calendar-grid-container::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--green), #4a90e2, #ffaa00);
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+    }
+    
+    .calendar-month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .calendar-weekday-header {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .calendar-day-cell {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 120px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s;
+      position: relative;
+      overflow-y: auto;
+    }
+    
+    .calendar-day-cell:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--border-2);
+      transform: translateY(-2px);
+    }
+    
+    .calendar-day-cell--empty {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.02);
+      pointer-events: none;
+    }
+    
+    .calendar-day-cell--today {
+      background: rgba(84, 209, 79, 0.03);
+      border-color: var(--green);
+      box-shadow: inset 0 0 12px rgba(84, 209, 79, 0.1);
+    }
+    
+    .calendar-day-number {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+    }
+    
+    .calendar-day-cell--today .calendar-day-number {
+      background: var(--green);
+      color: #000;
+    }
+    
+    /* Calendar item pills */
+    .calendar-item-pill {
+      font-size: 9px;
+      font-weight: 600;
+      padding: 3px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+    }
+    
+    .calendar-item-pill--task-done {
+      background: rgba(84, 209, 79, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(84, 209, 79, 0.2);
+    }
+    
+    .calendar-item-pill--task-pending {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    
+    .calendar-item-pill--project {
+      background: rgba(255, 122, 112, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(255, 122, 112, 0.2);
+      font-weight: 700;
+    }
+    
+    .calendar-item-pill--goal {
+      background: rgba(74, 144, 226, 0.15);
+      color: #4a90e2;
+      border: 1px solid rgba(74, 144, 226, 0.2);
+    }
+    
+    .calendar-item-pill--milestone {
+      background: rgba(255, 170, 0, 0.1);
+      color: #ffaa00;
+      border: 1px dashed rgba(255, 170, 0, 0.3);
+    }
+    
+    .calendar-legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="app">
+  <header class="app-header">
+    <div class="header-top">
+      <div class="header-month">
+        <a href="/" class="nav-btn" style="text-decoration: none; font-size: 13px; padding: 6px 12px; height: 32px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 6px; background: rgba(255,255,255,0.03); color: #d9e0e6; font-weight: 600; cursor: pointer;">
+          🏠 Tracker Dashboard
+        </a>
+        <h1 class="month-title" style="margin-left: 12px;">Monthly Calendar View</h1>
+      </div>
+      
+      <div class="header-stats-grid" style="display: flex; gap: 8px; align-items: center;">
+        <button class="nav-btn" id="cal-prev-month" title="Previous Month">‹</button>
+        <span id="cal-month-label" style="font-size: 16px; font-weight: 700; color: var(--text); min-width: 140px; text-align: center;">— —</span>
+        <button class="nav-btn" id="cal-next-month" title="Next Month">›</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="calendar-wrapper">
+    <div class="calendar-grid-container">
+      <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <div class="calendar-weekday-header">Mon</div>
+        <div class="calendar-weekday-header">Tue</div>
+        <div class="calendar-weekday-header">Wed</div>
+        <div class="calendar-weekday-header">Thu</div>
+        <div class="calendar-weekday-header">Fri</div>
+        <div class="calendar-weekday-header">Sat</div>
+        <div class="calendar-weekday-header">Sun</div>
+      </div>
+      
+      <div class="calendar-month-grid" id="calendar-grid-body">
+        <!-- Day cells injected dynamically -->
+      </div>
+      
+      <!-- Calendar Legend -->
+      <div class="calendar-legend-bar">
+        <span class="legend-item"><span class="legend-swatch" style="background: rgba(84, 209, 79, 0.2); border: 1px solid var(--green);"></span> Habit Completed</span>
+        <span class="legend-item"><span class="legend-swatch" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border);"></span> Habit Pending</span>
+        <span class="legend-item"><span class="legend-swatch" style="background: rgba(255, 122, 112, 0.2); border: 1px solid var(--danger);"></span> Project Deadline</span>
+        <span class="legend-item"><span class="legend-swatch" style="background: rgba(255, 170, 0, 0.2); border: 1px dashed #ffaa00;"></span> Project ToDo/Milestone</span>
+        <span class="legend-item"><span class="legend-swatch" style="background: rgba(74, 144, 226, 0.2); border: 1px solid #4a90e2;"></span> Goal Target</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    local-first · no cloud · no auth · phase 1
+  </footer>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="/static/js/calendar.js"></script>
+</body>
+</html>

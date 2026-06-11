@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Productivity Tracker">
+  <rect width="64" height="64" rx="14" fill="#0b1318"/>
+  <rect x="12" y="12" width="16" height="16" rx="4" fill="#54d14f"/>
+  <rect x="36" y="12" width="16" height="16" rx="4" fill="#f1f3f4"/>
+  <rect x="12" y="36" width="16" height="16" rx="4" fill="#050a0d" stroke="#2a3740" stroke-width="2"/>
+  <rect x="36" y="36" width="16" height="16" rx="4" fill="#54d14f" opacity="0.85"/>
+</svg>

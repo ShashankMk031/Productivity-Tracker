@@ -1,0 +1,54 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Local Python version managers
+.python-version
+
+# Databases and local app state
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+backend/database/*.db
+backend/database/*.sqlite
+backend/database/*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Generated reports / snapshots / backups
+backups/
+ai_context/
+ai_reports/
+intelligence_snapshots/
+reports/2026/
+
+# Build / misc
+dist/
+build/
