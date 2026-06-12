@@ -8,6 +8,16 @@ from typing import Optional
 DEFAULT_OPENAI_MODEL = "gpt-4o"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 
+# Placeholder embedded in reports when every provider fails. Keep this string
+# stable: report regeneration detects failed reports by matching on it.
+AI_FAILURE_PLACEHOLDER = "> [!WARNING]\n> AI generation failed to call models or models are unconfigured."
+
+def is_failed_reflection(reflection) -> bool:
+    """True when an AI reflection is missing or is the failure placeholder."""
+    if not reflection:
+        return True
+    return "AI generation failed" in reflection
+
 class AIService:
     def __init__(self):
         # Load backend/.env if it exists

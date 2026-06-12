@@ -14,19 +14,22 @@ def save_snapshot(db: sqlite3.Connection, report_period: str = "manual"):
     snapshot = generate_intelligence_snapshot(db)
     snapshot["report_period"] = report_period
     
-    now = get_logical_date_ist()
-    year = now.strftime("%Y")
-    month = now.strftime("%B") # e.g. June
+    logical_date = get_logical_date_ist()
+    year = logical_date.strftime("%Y")
+    month = logical_date.strftime("%B") # e.g. June
     
     # Calculate week of month roughly
-    day_of_month = now.day
+    day_of_month = logical_date.day
     week_num = (day_of_month - 1) // 7 + 1
     
     target_dir = SNAPSHOT_DIR / year / month
     target_dir.mkdir(parents=True, exist_ok=True)
     
-    # Add timestamp to filename to ensure history is kept
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    # Bug fix: the timestamp must come from a real datetime. Previously this
+    # called strftime("%H%M%S") on the logical *date*, which always rendered
+    # 000000 and made same-day snapshots of the same type overwrite each
+    # other, silently truncating prediction history.
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     if "weekly" in report_period:
         filename = f"week_{week_num}_forecast_{timestamp}.json"

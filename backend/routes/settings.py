@@ -1,11 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-import sqlite3
 import os
-import shutil
 from pathlib import Path
 
-from database.db import get_db
+from database.db import get_db, DB_PATH
 from services.backup_service import create_backup, get_available_backups, restore_from_backup, BASE_DIR
 
 router = APIRouter()
@@ -44,7 +42,10 @@ def get_health():
 
 @router.get("/storage")
 def get_storage():
-    db_size = (BASE_DIR / "database" / "productivity.db").stat().st_size / (1024 * 1024) if (BASE_DIR / "database" / "productivity.db").exists() else 0
+    # Bug fix: this previously checked database/productivity.db (wrong
+    # filename), so the reported DB size was always 0. Use the canonical
+    # DB path instead.
+    db_size = DB_PATH.stat().st_size / (1024 * 1024) if DB_PATH.exists() else 0
     
     sizes = {
         "database_mb": round(db_size, 2),
@@ -76,11 +77,19 @@ def trigger_backup():
         raise HTTPException(500, f"Failed to create backup: {e}")
 
 @router.post("/backups/restore")
-def restore_backup(path: str):
-    if restore_from_backup(path):
-        return {"success": True, "message": "System restored successfully. Please restart the application."}
-    else:
-        raise HTTPException(500, "Failed to restore backup.")
+def restore_backup(filename: str):
+    """
+    Restore from a managed backup inside the backups directory.
+
+    Behavior change (documented): the previous `path` parameter accepted any
+    filesystem path and destroyed live data before copying. Restores are now
+    restricted to managed backups, validated, verified, and atomically
+    swapped with a pre-restore safety copy.
+    """
+    result = restore_from_backup(filename)
+    if result["success"]:
+        return {"success": True, "message": result["message"]}
+    raise HTTPException(400, result["message"])
 
 @router.get("/export")
 def export_data():
