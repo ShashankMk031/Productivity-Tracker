@@ -83,7 +83,7 @@ async function loadBackups() {
               <span style="font-size:12px; color:var(--muted)">${new Date(b.created_at).toLocaleString()} | ${b.size_mb} MB</span>
             </div>
             <div class="backup-actions">
-              <button class="btn-secondary" style="font-size:12px; padding:4px 8px;" onclick="window.restoreBackup('${b.path}')">Restore</button>
+              <button class="btn-secondary" style="font-size:12px; padding:4px 8px;" onclick="window.restoreBackup('${b.relative_path}')">Restore</button>
             </div>
           </div>
         `;
@@ -95,11 +95,11 @@ async function loadBackups() {
   }
 }
 
-window.restoreBackup = async function(path) {
-  if (!confirm("WARNING: Restoring a backup will overwrite ALL current data. Are you sure?")) return;
+window.restoreBackup = async function(filename) {
+  if (!confirm("WARNING: Restoring a backup will replace current data. A safety backup of the current state is created first. Continue?")) return;
   
   try {
-    const res = await fetchAPI(`/api/settings/backups/restore?path=${encodeURIComponent(path)}`, { method: "POST" });
+    const res = await fetchAPI(`/api/settings/backups/restore?filename=${encodeURIComponent(filename)}`, { method: "POST" });
     if (res && res.success) {
       alert("Restore complete. Please restart the backend server manually to ensure clean state.");
       window.location.href = "/";

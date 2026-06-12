@@ -37,7 +37,13 @@ def get_report_markdown(db: sqlite3.Connection, report_id: int):
             return f.read()
     return None
 
-def generate_and_save_report(db: sqlite3.Connection, report_type: str, report_date = None):
+def generate_and_save_report(db: sqlite3.Connection, report_type: str, report_date = None, replace_report_id: int | None = None):
+    """Generate a report and persist its artifacts and DB row.
+
+    When replace_report_id is provided, the existing reports row is updated
+    in place instead of inserting a new one. This is the regeneration path
+    for reports whose AI section previously failed.
+    """
     # Persist the intelligence snapshot before generating report
     try:
         save_snapshot(db, report_type)
@@ -175,13 +181,19 @@ def generate_and_save_report(db: sqlite3.Connection, report_type: str, report_da
         
     summary = f"Completion: {metrics.get('completion_pct', 0)}% | Streak: {metrics.get('current_streak', 0)}"
     
-    # Store in DB
-    cur = db.execute(
-        "INSERT INTO reports (type, generated_at, markdown_path, summary, period_start, period_end) VALUES (?, ?, ?, ?, ?, ?)",
-        (report_type, generated_at, str(filepath), summary, period_start, period_end)
-    )
-    
-    report_id = cur.lastrowid
+    # Store in DB (update in place when regenerating a failed report)
+    if replace_report_id is not None:
+        db.execute(
+            "UPDATE reports SET type = ?, generated_at = ?, markdown_path = ?, summary = ?, period_start = ?, period_end = ? WHERE id = ?",
+            (report_type, generated_at, str(filepath), summary, period_start, period_end, replace_report_id)
+        )
+        report_id = replace_report_id
+    else:
+        cur = db.execute(
+            "INSERT INTO reports (type, generated_at, markdown_path, summary, period_start, period_end) VALUES (?, ?, ?, ?, ?, ?)",
+            (report_type, generated_at, str(filepath), summary, period_start, period_end)
+        )
+        report_id = cur.lastrowid
     
     return {
         "id": report_id,
@@ -219,3 +231,12 @@ def get_report_ai_reflection(db: sqlite3.Connection, report_id: int):
             return f.read()
             
     return None
+
+def report_ai_failed(db: sqlite3.Connection, report_id: int) -> bool:
+    """True when the stored report's AI section is missing or is the failure placeholder.
+
+    Used by the report routes to allow regeneration instead of permanently
+    blocking a period behind a failed report.
+    """
+    from ai.ai_service import is_failed_reflection
+    return is_failed_reflection(get_report_ai_reflection(db, report_id))
