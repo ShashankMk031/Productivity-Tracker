@@ -3,8 +3,9 @@ from fastapi.responses import FileResponse
 import os
 from pathlib import Path
 
-from database.db import get_db, DB_PATH
-from services.backup_service import create_backup, get_available_backups, restore_from_backup, BASE_DIR
+from config import BASE_DIR, DB_PATH
+from database.db import get_db
+from services.backup_service import create_backup, get_available_backups, restore_from_backup
 
 router = APIRouter()
 

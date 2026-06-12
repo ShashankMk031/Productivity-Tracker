@@ -1,14 +1,10 @@
-import os
 import json
 from datetime import datetime
-from pathlib import Path
 import sqlite3
 
 from .prediction_engine import generate_intelligence_snapshot
 from services.date_service import get_logical_date_ist
-
-BASE_DIR = Path(__file__).parent.parent.parent
-SNAPSHOT_DIR = BASE_DIR / "intelligence_snapshots"
+from config import SNAPSHOT_DIR
 
 def save_snapshot(db: sqlite3.Connection, report_period: str = "manual"):
     snapshot = generate_intelligence_snapshot(db)

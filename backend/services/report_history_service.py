@@ -5,18 +5,17 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from services.date_service import get_logical_date_ist
 from services.analytics_service import aggregate_analytics
+from services.logging_service import get_logger
 from ai.context_builder import build_ai_context
 from ai.prompt_builder import build_ai_prompt
 from ai.ai_service import AIService
 from intelligence.snapshot_service import save_snapshot
 from services.backup_service import create_backup
+from config import REPORTS_DIR as REPORTS_BASE_DIR
+from config import AI_REPORTS_DIR as AI_REPORTS_BASE_DIR
+from config import AI_CONTEXT_DIR as AI_CONTEXT_BASE_DIR
 
-# project-root/reports
-REPORTS_BASE_DIR = Path(__file__).parent.parent.parent / "reports"
-# project-root/ai_reports
-AI_REPORTS_BASE_DIR = Path(__file__).parent.parent.parent / "ai_reports"
-# project-root/ai_context
-AI_CONTEXT_BASE_DIR = Path(__file__).parent.parent.parent / "ai_context"
+logger = get_logger(__name__)
 
 def ensure_dir(path: Path):
     if not path.exists():
@@ -48,14 +47,14 @@ def generate_and_save_report(db: sqlite3.Connection, report_type: str, report_da
     try:
         save_snapshot(db, report_type)
     except Exception as e:
-        print(f"Failed to save intelligence snapshot: {e}")
+        logger.warning("Failed to save intelligence snapshot: %s", e)
         
     # Trigger a backup before monthly reports
     if report_type == "monthly":
         try:
             create_backup("monthly_report_pre_generation")
         except Exception as e:
-            print(f"Failed to create backup: {e}")
+            logger.warning("Failed to create pre-generation backup: %s", e)
 
     analytics = aggregate_analytics(db)
     metrics = analytics.get("metrics", {})
@@ -128,8 +127,8 @@ def generate_and_save_report(db: sqlite3.Connection, report_type: str, report_da
     with open(prompt_filepath, "w") as f:
         f.write(ai_prompt)
         
-    print(f"✓ AI Context snapshot saved at: {context_filepath}")
-    print(f"✓ AI Rendered Prompt saved at: {prompt_filepath}")
+    logger.info("AI context snapshot saved at %s", context_filepath)
+    logger.info("AI rendered prompt saved at %s", prompt_filepath)
 
     # Calculate scores and focus hours for Markdown inclusion
     from services.scoring_service import calculate_productivity_scores
@@ -177,7 +176,7 @@ def generate_and_save_report(db: sqlite3.Connection, report_type: str, report_da
     raw_filepath = ai_reports_folder / raw_filename
     with open(raw_filepath, "w") as f:
         f.write(ai_reflection)
-    print(f"✓ Raw AI response saved at: {raw_filepath}")
+    logger.info("Raw AI response saved at %s", raw_filepath)
         
     summary = f"Completion: {metrics.get('completion_pct', 0)}% | Streak: {metrics.get('current_streak', 0)}"
     

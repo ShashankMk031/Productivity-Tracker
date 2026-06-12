@@ -1,6 +1,5 @@
 import sqlite3
 from datetime import datetime, timedelta
-import re
 
 def detect_burnout(db: sqlite3.Connection) -> dict:
     now = datetime.now()

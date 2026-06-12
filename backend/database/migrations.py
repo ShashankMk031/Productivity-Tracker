@@ -23,8 +23,10 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent.parent
-DB_PATH = BASE_DIR / "database" / "tracker.db"
+from config import DB_PATH
+from services.logging_service import get_logger
+
+logger = get_logger(__name__)
 
 FULL_WEEK_JSON = '["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]'
 

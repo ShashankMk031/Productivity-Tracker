@@ -2,7 +2,11 @@ import os
 import json
 import urllib.request
 import urllib.error
-from typing import Optional
+
+from config import AI_ENV_PATH
+from services.logging_service import get_logger
+
+logger = get_logger(__name__)
 
 # Setup environment defaults
 DEFAULT_OPENAI_MODEL = "gpt-4o"
@@ -33,8 +37,7 @@ class AIService:
         self.gemini_model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
         
     def _load_env_file(self):
-        from pathlib import Path
-        env_path = Path(__file__).parent.parent / ".env"
+        env_path = AI_ENV_PATH
         if env_path.exists():
             try:
                 with open(env_path, "r") as f:
@@ -50,7 +53,7 @@ class AIService:
                                 val = val[1:-1]
                             os.environ[key] = val
             except Exception as e:
-                print(f"[AI Service] Error loading .env file: {e}")
+                logger.warning("Error loading .env file: %s", e)
             
     def generate_reflection(self, prompt: str) -> str:
         """
@@ -70,22 +73,22 @@ class AIService:
             
         for name, call_fn, key in order:
             if key:
-                print(f"[AI Service] Attempting reflection generation with {name.upper()}...")
+                logger.info("Attempting reflection generation with %s", name.upper())
                 try:
                     reflection = call_fn(prompt)
-                    print(f"✓ Success! Reflection generated using {name.upper()}.")
+                    logger.info("Reflection generated using %s", name.upper())
                     return reflection
                 except Exception as e:
                     err_msg = f"{name.upper()} failed: {str(e)}"
-                    print(f"[AI Service] WARNING: {err_msg}")
+                    logger.warning(err_msg)
                     errors.append(err_msg)
             else:
                 msg = f"{name.upper()} API key is missing or not configured."
-                print(f"[AI Service] {msg}")
+                logger.info(msg)
                 errors.append(msg)
             
         # 3. Fail gracefully so the rest of the report can be generated
-        print("[AI Service] WARNING: Both AI providers failed or were unconfigured.")
+        logger.warning("Both AI providers failed or were unconfigured.")
         return AI_FAILURE_PLACEHOLDER
 
     def _call_gemini(self, prompt: str) -> str:
