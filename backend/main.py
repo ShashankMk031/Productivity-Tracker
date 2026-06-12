@@ -8,8 +8,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 
+from config import BASE_DIR, FRONTEND_DIR
 from database.db import init_db
 from routes.tasks import router as tasks_router
 from routes.reports import router as reports_router
@@ -20,9 +20,6 @@ from routes.focus import router as focus_router
 from routes.reminders import router as reminders_router
 from routes.intelligence import router as intelligence_router
 from routes.settings import router as settings_router
-
-BASE_DIR = Path(__file__).parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = FastAPI(title="Productivity Tracker API", version="1.3.0")
 

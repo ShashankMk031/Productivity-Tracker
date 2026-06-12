@@ -1,12 +1,9 @@
 import json
-from pathlib import Path
 from datetime import datetime, timedelta
 import sqlite3
 
 from services.date_service import get_logical_date_ist
-
-BASE_DIR = Path(__file__).parent.parent.parent
-SNAPSHOT_DIR = BASE_DIR / "intelligence_snapshots"
+from config import SNAPSHOT_DIR
 
 def evaluate_prediction_accuracy(db: sqlite3.Connection) -> dict:
     # 1. Find the snapshot from approximately 1 week ago

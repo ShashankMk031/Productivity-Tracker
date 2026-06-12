@@ -1,9 +1,12 @@
-from zoneinfo import ZoneInfo
 import json
+
+from config import TIMEZONE, DAY_RESET_HOUR, DAY_RESET_LABEL
 
 DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 FULL_WEEK = DAY_ORDER[:]
 FULL_WEEK_JSON = json.dumps(FULL_WEEK)
-IST = ZoneInfo("Asia/Kolkata")
-DAY_RESET_HOUR_IST = 4
-DAY_RESET_LABEL = "Day resets at 04:00 AM (IST)"
+
+# Aliases kept stable for existing imports (date_service, helpers).
+# The values themselves are owned by config.py.
+IST = TIMEZONE
+DAY_RESET_HOUR_IST = DAY_RESET_HOUR

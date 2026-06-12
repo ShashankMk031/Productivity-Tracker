@@ -6,9 +6,7 @@ import zipfile
 from pathlib import Path
 from datetime import datetime
 from .logging_service import log_critical, log_error
-
-BASE_DIR = Path(__file__).parent.parent.parent
-BACKUPS_DIR = BASE_DIR / "backups"
+from config import BASE_DIR, BACKUPS_DIR
 
 DIRECTORIES_TO_BACKUP = [
     "database",

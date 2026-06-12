@@ -2,6 +2,9 @@ import sqlite3
 from datetime import date, timedelta
 from services.date_service import get_logical_date_ist
 from services.report_history_service import generate_and_save_report
+from services.logging_service import get_logger
+
+logger = get_logger(__name__)
 
 def get_latest_completed_week_bounds(today: date) -> tuple[date, date]:
     """
@@ -26,7 +29,7 @@ def run_report_audit(db: sqlite3.Connection):
     Performs startup report auditing. Detects missing weekly and monthly reports
     for the latest completed calendar cycles and auto-generates them.
     """
-    print("[Report Audit Service] Initiating productivity report audit...")
+    logger.info("Initiating productivity report audit")
     today = get_logical_date_ist()
     
     # 1. Weekly Check
@@ -39,14 +42,14 @@ def run_report_audit(db: sqlite3.Connection):
     ).fetchone()
     
     if not existing_weekly:
-        print(f"[Report Audit Service] Missing weekly report for period ending {w_end_str}. Auto-generating...")
+        logger.info("Missing weekly report for period ending %s; auto-generating", w_end_str)
         try:
             res = generate_and_save_report(db, "weekly", report_date=w_end)
-            print(f"✓ [Report Audit Service] Auto-generated weekly report ID: {res['id']}")
+            logger.info("Auto-generated weekly report ID %s", res["id"])
         except Exception as e:
-            print(f"❌ [Report Audit Service] Failed to auto-generate weekly report: {e}")
+            logger.error("Failed to auto-generate weekly report: %s", e)
     else:
-        print(f"[Report Audit Service] Weekly report for period ending {w_end_str} already exists (ID: {existing_weekly['id']}).")
+        logger.info("Weekly report for period ending %s already exists (ID %s)", w_end_str, existing_weekly["id"])
 
     # 2. Monthly Check
     m_start, m_end = get_previous_month_bounds(today)
@@ -58,13 +61,13 @@ def run_report_audit(db: sqlite3.Connection):
     ).fetchone()
     
     if not existing_monthly:
-        print(f"[Report Audit Service] Missing monthly report for period ending {m_end_str}. Auto-generating...")
+        logger.info("Missing monthly report for period ending %s; auto-generating", m_end_str)
         try:
             res = generate_and_save_report(db, "monthly", report_date=m_end)
-            print(f"✓ [Report Audit Service] Auto-generated monthly report ID: {res['id']}")
+            logger.info("Auto-generated monthly report ID %s", res["id"])
         except Exception as e:
-            print(f"❌ [Report Audit Service] Failed to auto-generate monthly report: {e}")
+            logger.error("Failed to auto-generate monthly report: %s", e)
     else:
-        print(f"[Report Audit Service] Monthly report for period ending {m_end_str} already exists (ID: {existing_monthly['id']}).")
+        logger.info("Monthly report for period ending %s already exists (ID %s)", m_end_str, existing_monthly["id"])
         
-    print("[Report Audit Service] Audit complete.")
+    logger.info("Audit complete")
