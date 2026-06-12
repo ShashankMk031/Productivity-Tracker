@@ -47,8 +47,8 @@ app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 @app.on_event("startup")
 def startup():
-    from database.db_migrations import run_migrations
-    run_migrations()
+    # Single schema authority: init_db() runs the unified migration runner
+    # (backend/database/migrations.py).
     init_db()
     from database.db import get_db
     from services.report_audit_service import run_report_audit
