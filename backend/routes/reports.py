@@ -1,7 +1,13 @@
 from fastapi import APIRouter, HTTPException, Query
 from database.db import get_db
 from schemas.response import APIResponse
-from services.report_history_service import get_report_history, generate_and_save_report, get_report_markdown
+from services.report_history_service import (
+    get_report_history,
+    generate_and_save_report,
+    get_report_markdown,
+    get_report_ai_reflection,
+    report_ai_failed,
+)
 from services.analytics_service import aggregate_analytics
 from services.date_service import get_logical_date_ist
 from datetime import timedelta
@@ -11,12 +17,12 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 @router.get("/status")
 def report_status():
     """
-    Returns a unified status keeping the '📊 Generate Report' action always active.
+    Returns a unified status keeping the '\ud83d\udcca Generate Report' action always active.
     """
     return APIResponse(data={
         "can_generate": True,
         "report_type": "weekly",
-        "button_label": "📊 Generate Report"
+        "button_label": "\ud83d\udcca Generate Report"
     })
 
 @router.get("/analytics")
@@ -44,8 +50,13 @@ def generate_report():
         # Check existence
         existing = db.execute("SELECT id FROM reports WHERE type = 'weekly' AND period_end = ?", (target_date_str,)).fetchone()
         if existing:
+            if report_ai_failed(db, existing["id"]):
+                # Bug fix: a report whose AI section failed used to block
+                # regeneration forever. Regenerate it in place instead.
+                report_data = generate_and_save_report(db, "weekly", report_date=target_date, replace_report_id=existing["id"])
+                report_data["status"] = "regenerated"
+                return APIResponse(data=report_data, message="Previous report had a failed AI section. Report regenerated.")
             markdown = get_report_markdown(db, existing["id"])
-            from services.report_history_service import get_report_ai_reflection
             ai_reflection = get_report_ai_reflection(db, existing["id"])
             return APIResponse(data={
                 "id": existing["id"],
@@ -74,15 +85,18 @@ def smart_generate(type: str = Query("weekly")):
             
         target_date_str = target_date.isoformat()
         
-        # Check existence check
         existing = db.execute(
             "SELECT id FROM reports WHERE type = ? AND period_end = ?",
             (type, target_date_str)
         ).fetchone()
         
         if existing:
+            if report_ai_failed(db, existing["id"]):
+                # Bug fix: regenerate in place instead of blocking forever.
+                report_data = generate_and_save_report(db, type, report_date=target_date, replace_report_id=existing["id"])
+                report_data["status"] = "regenerated"
+                return APIResponse(data=report_data, message="Previous report had a failed AI section. Report regenerated.")
             markdown = get_report_markdown(db, existing["id"])
-            from services.report_history_service import get_report_ai_reflection
             ai_reflection = get_report_ai_reflection(db, existing["id"])
             return APIResponse(data={
                 "id": existing["id"],
@@ -104,7 +118,6 @@ def get_report(report_id: int):
         if markdown is None:
             raise HTTPException(404, "Report not found")
             
-        from services.report_history_service import get_report_ai_reflection
         ai_reflection = get_report_ai_reflection(db, report_id)
         
         row = db.execute("SELECT type, generated_at, period_start, period_end, summary FROM reports WHERE id = ?", (report_id,)).fetchone()

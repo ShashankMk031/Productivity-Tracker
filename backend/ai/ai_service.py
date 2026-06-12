@@ -86,7 +86,7 @@ class AIService:
             
         # 3. Fail gracefully so the rest of the report can be generated
         print("[AI Service] WARNING: Both AI providers failed or were unconfigured.")
-        return "> [!WARNING]\n> AI generation failed to call models or models are unconfigured."
+        return AI_FAILURE_PLACEHOLDER
 
     def _call_gemini(self, prompt: str) -> str:
         # Use v1beta generateContent endpoint
