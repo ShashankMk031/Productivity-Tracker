@@ -21,6 +21,7 @@ def detect_burnout(db: sqlite3.Connection) -> dict:
         "SELECT start_time, notes FROM focus_sessions WHERE start_time >= ? AND notes != ''",
         (thirty_days_ago,)
     ).fetchall()
+    total_text_samples = len(recent_entries) + len(recent_sessions)
 
     def count_fatigue(texts):
         count = 0
@@ -108,8 +109,12 @@ def detect_burnout(db: sqlite3.Connection) -> dict:
         "reason": " and ".join(reasons) if reasons else "Stable performance patterns",
         "supporting_metrics": {
             "fatigue_mentions_last_14d": fatigue_last_14,
+            "fatigue_mentions_prev_14d": fatigue_prev_14,
             "focus_duration_drop_pct": int(focus_drop_pct) if focus_drop_pct > 0 else 0,
-            "missed_tasks_last_14d": miss_last_14
+            "missed_tasks_last_14d": miss_last_14,
+            "missed_tasks_prev_14d": miss_prev_14,
+            "sample_size": total_text_samples + (focus_last_14["c"] or 0) + (focus_prev_14["c"] or 0),
+            "data_completeness": round(min(total_text_samples / 12, 1), 2),
         },
         "confidence": confidence
     }

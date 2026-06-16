@@ -8,6 +8,7 @@ from services.project_service import get_all_projects
 
 from .note_analysis import analyze_notes
 from .behavioral_summary import generate_behavioral_summary
+from .prediction_summary_builder import build_prediction_summary
 from intelligence.prediction_engine import generate_intelligence_snapshot
 from intelligence.prediction_accuracy import evaluate_prediction_accuracy
 from .schemas import (
@@ -24,13 +25,13 @@ def build_ai_context(
     period_end: Optional[str] = None
 ) -> AIContextPackage:
     # 1. Gather Analytics
-    analytics = aggregate_analytics(db)
+    analytics = aggregate_analytics(db, period_start=period_start, period_end=period_end)
     
     # 2. Gather Note Analysis
     notes_analysis = analyze_notes(db, period_start, period_end)
     
     # 3. Gather Behavioral Summary
-    behavioral_patterns = generate_behavioral_summary(db)
+    behavioral_patterns = generate_behavioral_summary(db, period_start=period_start, period_end=period_end)
     
     # 4. Gather & Map Goals
     goals_raw = get_all_goals(db)
@@ -101,6 +102,7 @@ def build_ai_context(
     
     intelligence_snapshot = generate_intelligence_snapshot(db)
     prediction_acc = evaluate_prediction_accuracy(db)
+    prediction_summary = build_prediction_summary(intelligence_snapshot, prediction_acc)
     
     generated_at = datetime.now().isoformat()
     
@@ -112,9 +114,12 @@ def build_ai_context(
         behavioral_patterns=behavioral_patterns,
         generated_at=generated_at,
         period_type=period_type,
+        period_start=period_start,
+        period_end=period_end,
         focus_stats=focus_stats,
         reminder_stats=reminder_stats,
         scores=scores,
         intelligence_snapshot=intelligence_snapshot,
-        prediction_accuracy=prediction_acc
+        prediction_accuracy=prediction_acc,
+        prediction_summary_markdown=prediction_summary,
     )

@@ -17,6 +17,7 @@ let inputDeadline;
 let inputDescription;
 let inputPriority;
 let inputMilestones;
+let inputGoal;
 
 let projectsGrid;
 
@@ -50,6 +51,7 @@ export async function initProjects() {
   inputDescription = document.getElementById('project-modal-description');
   inputPriority = document.getElementById('project-modal-priority');
   inputMilestones = document.getElementById('project-modal-milestones');
+  inputGoal = document.getElementById('project-modal-goal');
   projectsGrid = document.getElementById('projects-grid');
   milestoneModal = document.getElementById('milestone-modal');
   milestoneModalOverlay = document.getElementById('milestone-modal-overlay');
@@ -108,7 +110,7 @@ function renderCompletedVisibility() {
   }
 }
 
-function openProjectModal(project = null) {
+async function openProjectModal(project = null) {
   editingProjectId = project ? project.id : null;
   document.getElementById('project-modal-title').textContent = project ? 'Edit Project' : 'New Project';
   
@@ -122,6 +124,25 @@ function openProjectModal(project = null) {
   } else {
     inputMilestones.parentElement.style.display = 'block';
     inputMilestones.value = '';
+  }
+
+  // Populate goals select options
+  if (inputGoal) {
+    inputGoal.innerHTML = '<option value="">-- No Link --</option>';
+    try {
+      const goals = await fetchAPI('/goals') || [];
+      goals.forEach(g => {
+        if (g.completed === 0 || (project && project.goal_id === g.id)) {
+          const opt = document.createElement('option');
+          opt.value = g.id;
+          opt.textContent = g.title;
+          inputGoal.appendChild(opt);
+        }
+      });
+      inputGoal.value = (project && project.goal_id) ? project.goal_id : '';
+    } catch (err) {
+      console.warn("Failed to load goals for project link:", err);
+    }
   }
   
   projectModal.classList.add('modal--open');
@@ -146,7 +167,8 @@ async function saveProject() {
     title, 
     deadline,
     description: inputDescription.value.trim(),
-    priority: parseInt(inputPriority.value) || 0
+    priority: parseInt(inputPriority.value) || 0,
+    goal_id: inputGoal && inputGoal.value ? parseInt(inputGoal.value) : null
   };
 
   if (!editingProjectId) {
@@ -388,9 +410,16 @@ function renderProjects() {
       `;
     }
 
+    const goalLinkHtml = project.goal_title 
+      ? `<div class="project-card__goal-link" style="font-size:10px; color:#4a90e2; font-weight:600; margin-top:2px;">🎯 Goal: ${project.goal_title}</div>`
+      : '';
+
     el.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 8px;">
-        <div class="project-card__title">${project.title}</div>
+        <div>
+          <div class="project-card__title">${project.title}</div>
+          ${goalLinkHtml}
+        </div>
         <div style="display:flex; gap: 8px; align-items:center;">
           <button class="icon-btn project-complete" title="Mark Completed" style="font-size:14px; padding:2px; color:var(--muted)">✓</button>
           <button class="icon-btn project-edit" title="Edit Project" style="font-size:14px; padding:2px; color:var(--muted)">✎</button>
@@ -451,10 +480,17 @@ function renderProjects() {
     const completed = project.milestones.filter(m => m.completed === 1).length;
     
     const completedDateFormatted = project.completed_at ? new Date(project.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown date';
+    
+    const goalLinkHtml = project.goal_title 
+      ? `<div class="project-card__goal-link" style="font-size:10px; color:#4a90e2; font-weight:600; margin-top:2px; text-decoration:none;">🎯 Goal: ${project.goal_title}</div>`
+      : '';
 
     el.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 8px;">
-        <div class="project-card__title" style="text-decoration: line-through; color: var(--muted);">${project.title}</div>
+        <div>
+          <div class="project-card__title" style="text-decoration: line-through; color: var(--muted);">${project.title}</div>
+          ${goalLinkHtml}
+        </div>
         <div style="display:flex; gap: 8px; align-items:center;">
           <button class="icon-btn project-restore" title="Restore to Active" style="font-size:14px; padding:2px; color:var(--muted)">↺</button>
           <button class="icon-btn project-del" title="Delete Project" style="font-size:14px; padding:2px; color:var(--muted)">✕</button>

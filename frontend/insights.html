@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intelligence Insights - Productivity Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/strategic.css" />
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <div class="app">
+      <!-- Intelligence Insights section wrapper as a Card -->
+      <section class="strategic-section" id="insights-section">
+        <div class="ui-card" style="margin-bottom: 24px;">
+          <div class="strategic-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;" id="insights-header-toggle">
+            <h2 style="font-size: 15px; font-weight: 600; color: var(--text);">🧠 Active Forecasts & Reflections</h2>
+            <span style="font-size: 12px; color: var(--muted);" id="insights-toggle-icon">▼</span>
+          </div>
+          <div id="insights-container-wrapper">
+            <div id="insights-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+              <!-- Insight cards dynamically injected here -->
+              <div style="color: var(--muted); font-size: 13px;">Loading insights...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prediction Accuracy Dashboard Sub-panel as a Card -->
+        <div class="ui-card" id="accuracy-dashboard-container" style="border-left: 3px solid var(--info);">
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">📈 Prediction Accuracy Dashboard</h3>
+          
+          <div id="accuracy-metrics-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: var(--space-md);">
+            <!-- Accuracy percentages for each predictor type -->
+          </div>
+          
+          <div id="recent-evaluations-table-wrapper" style="overflow-x: auto; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid var(--border);">
+            <table class="ui-table">
+              <thead>
+                <tr>
+                  <th>Predictor</th>
+                  <th>Target</th>
+                  <th>Predicted</th>
+                  <th>Outcome</th>
+                  <th>Accuracy</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="recent-evaluations-tbody">
+                <!-- Evaluation rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+        local-first · no cloud · no auth · phase 1
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script type="module" src="/static/js/navigation.js"></script>
+<script type="module" src="/static/js/insights.js"></script>
+</body>
+</html>

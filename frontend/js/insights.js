@@ -2,16 +2,17 @@ import { fetchAPI } from './api.js';
 
 export async function initInsights() {
   const container = document.getElementById("insights-container");
+  const wrapper = document.getElementById("insights-container-wrapper");
   const headerToggle = document.getElementById("insights-header-toggle");
   const toggleIcon = document.getElementById("insights-toggle-icon");
   
   if (!container) return;
 
-  // Collapse/Expand toggle
+  // Collapse/Expand toggle for the entire wrapper
   let isExpanded = true;
   headerToggle.addEventListener("click", () => {
     isExpanded = !isExpanded;
-    container.style.display = isExpanded ? "grid" : "none";
+    if (wrapper) wrapper.style.display = isExpanded ? "block" : "none";
     toggleIcon.textContent = isExpanded ? "▼" : "▶";
   });
 
@@ -20,7 +21,10 @@ export async function initInsights() {
     if (!res || !res.data) return;
 
     const snap = res.data.snapshot;
+    const accuracy = res.data.accuracy;
+    
     renderInsights(container, snap);
+    renderAccuracy(accuracy);
   } catch (err) {
     console.error("Failed to load insights", err);
     container.innerHTML = `<div style="color: var(--danger); font-size: 13px;">Failed to load insights.</div>`;
@@ -155,6 +159,83 @@ function createCard(title, data, subtitleOverride = null) {
   card.appendChild(metricsBox);
 
   return card;
+}
+
+function renderAccuracy(accuracy) {
+  const summaryContainer = document.getElementById("accuracy-metrics-summary");
+  const tbody = document.getElementById("recent-evaluations-tbody");
+  
+  if (!summaryContainer || !tbody) return;
+  
+  summaryContainer.innerHTML = "";
+  tbody.innerHTML = "";
+  
+  if (!accuracy || accuracy.status === "No evaluated predictions yet" || !accuracy.predictors || Object.keys(accuracy.predictors).length === 0) {
+    summaryContainer.innerHTML = `<div style="color:var(--muted); font-size:12px; grid-column: 1 / -1; text-align: center; padding: 12px; background: rgba(255,255,255,0.01); border: 1px dashed var(--border); border-radius: 6px;">No accuracy evaluations recorded yet. (Needs predictions that have passed their 7 or 14-day horizon).</div>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:16px; text-align:center; color:var(--muted);">No recent evaluations.</td></tr>`;
+    return;
+  }
+  
+  // 1. Render Summary Cards
+  for (const [predictor, meta] of Object.entries(accuracy.predictors)) {
+    const card = document.createElement("div");
+    card.style = `
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border-top: 3px solid #4a90e2;
+    `;
+    
+    // Pick border top color based on accuracy percentage
+    const pct = meta.accuracy_pct;
+    let color = "var(--danger)";
+    if (pct >= 80) color = "var(--green)";
+    else if (pct >= 50) color = "#ffaa00";
+    
+    card.style.borderTop = `3px solid ${color}`;
+    
+    const label = predictor.replace('_', ' ').toUpperCase();
+    
+    card.innerHTML = `
+      <span style="font-size:10px; color:var(--muted); font-weight:700; letter-spacing:0.5px;">${label}</span>
+      <span style="font-size:20px; font-weight:700; color:${color}">${pct}%</span>
+      <span style="font-size:9px; color:var(--muted)">${meta.total_evaluated} evaluated</span>
+    `;
+    summaryContainer.appendChild(card);
+  }
+  
+  // 2. Render Recent Evaluations Table
+  const evals = accuracy.recent_evaluations || [];
+  if (evals.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:16px; text-align:center; color:var(--muted);">No recent evaluations.</td></tr>`;
+    return;
+  }
+  
+  evals.forEach(ev => {
+    const tr = document.createElement("tr");
+    tr.style.borderBottom = "1px solid rgba(255,255,255,0.02)";
+    
+    let scoreColor = "var(--muted)";
+    if (ev.accuracy_label === "Correct") scoreColor = "var(--green)";
+    else if (ev.accuracy_label === "Near miss") scoreColor = "#ffaa00";
+    else if (ev.accuracy_label === "Missed risk") scoreColor = "var(--danger)";
+    
+    const dateStr = new Date(ev.predicted_on).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    
+    tr.innerHTML = `
+      <td style="padding:10px; font-weight:600; color:var(--text);">${ev.predictor_type.toUpperCase()}</td>
+      <td style="padding:10px;">${ev.target}</td>
+      <td style="padding:10px;"><span style="font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700; background:rgba(255,255,255,0.05); color:#fff;">${ev.predicted_risk}</span></td>
+      <td style="padding:10px; font-size:11px; color:var(--muted);">${ev.actual_outcome}</td>
+      <td style="padding:10px;"><span style="color:${scoreColor}; font-weight:bold;">${ev.accuracy_label}</span></td>
+      <td style="padding:10px; color:var(--muted); font-family:monospace;">${dateStr}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 // Auto-init

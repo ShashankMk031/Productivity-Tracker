@@ -17,6 +17,7 @@ CRITICAL_DIRS = [
 
 def run_integrity_check(db: sqlite3.Connection):
     issues_found = 0
+    details = []
     
     # 1. Self-heal directories
     for d in CRITICAL_DIRS:
@@ -25,9 +26,11 @@ def run_integrity_check(db: sqlite3.Connection):
             try:
                 dir_path.mkdir(parents=True, exist_ok=True)
                 print(f"[Self-Healing] Created missing directory: {d}")
+                details.append(f"Fixed: Recreated missing directory '{d}'")
             except Exception as e:
                 log_critical("Integrity", f"Failed to create critical directory '{d}': {e}")
                 issues_found += 1
+                details.append(f"Error: Failed to create critical directory '{d}'")
                 
     # 2. Check Database Orphans
     # Orphan milestones (project_id doesn't exist)
@@ -42,6 +45,7 @@ def run_integrity_check(db: sqlite3.Connection):
         issues_found += len(orphans)
         for o in orphans:
             log_critical("Integrity (DB)", f"Orphan milestone found: ID {o['id']} ('{o['title']}')")
+            details.append(f"Orphan Milestone: ID {o['id']} ('{o['title']}') - Project missing")
             # Auto-cleanup optionally: db.execute("DELETE FROM project_milestones WHERE id = ?", (o["id"],))
 
     # 3. Check Report Files Mismatches
@@ -50,8 +54,10 @@ def run_integrity_check(db: sqlite3.Connection):
         if not os.path.exists(r["markdown_path"]):
             issues_found += 1
             log_critical("Integrity (FS)", f"Report record {r['id']} points to missing file: {r['markdown_path']}")
+            details.append(f"Missing File: Report {r['id']} markdown file does not exist on disk")
             
     return {
         "status": "Healthy" if issues_found == 0 else "Degraded",
-        "issues_found": issues_found
+        "issues_found": issues_found,
+        "details": details
     }

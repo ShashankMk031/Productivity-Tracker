@@ -41,7 +41,6 @@ def workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(rhs, "AI_REPORTS_BASE_DIR", tmp_path / "ai_reports")
     monkeypatch.setattr(rhs, "AI_CONTEXT_BASE_DIR", tmp_path / "ai_context")
     monkeypatch.setattr(snapshot_service, "SNAPSHOT_DIR", tmp_path / "intelligence_snapshots")
-    monkeypatch.setattr(prediction_accuracy, "SNAPSHOT_DIR", tmp_path / "intelligence_snapshots")
     return tmp_path
 
 
@@ -103,5 +102,5 @@ def seeded_db(db):
 def mock_ai(monkeypatch):
     """Prevent live AI calls; return a deterministic reflection."""
     from ai.ai_service import AIService
-    monkeypatch.setattr(AIService, "generate_reflection", lambda self, prompt: "Mock AI reflection.")
+    monkeypatch.setattr(AIService, "generate_reflection", lambda self, prompt, **kwargs: ("Mock AI reflection.", "mock", "mock-model"))
     return "Mock AI reflection."

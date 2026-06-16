@@ -39,12 +39,12 @@ def test_generate_monthly_report_period_math(workspace, seeded_db, mock_ai):
 def test_failed_report_detected_and_regenerated_in_place(workspace, seeded_db, monkeypatch):
     target = date(2026, 5, 31)
 
-    monkeypatch.setattr(AIService, "generate_reflection", lambda self, prompt: AI_FAILURE_PLACEHOLDER)
+    monkeypatch.setattr(AIService, "generate_reflection", lambda self, prompt, **kwargs: (AI_FAILURE_PLACEHOLDER, "failed", "none"))
     data = rhs.generate_and_save_report(seeded_db, "weekly", report_date=target)
     seeded_db.commit()
     assert rhs.report_ai_failed(seeded_db, data["id"]) is True
 
-    monkeypatch.setattr(AIService, "generate_reflection", lambda self, prompt: "Recovered reflection.")
+    monkeypatch.setattr(AIService, "generate_reflection", lambda self, prompt, **kwargs: ("Recovered reflection.", "mock", "mock-model"))
     regenerated = rhs.generate_and_save_report(
         seeded_db, "weekly", report_date=target, replace_report_id=data["id"]
     )
@@ -66,3 +66,23 @@ def test_snapshot_files_do_not_overwrite_same_day(workspace, seeded_db):
     second = save_snapshot(seeded_db, "manual")
     assert first != second
     assert first.exists() and second.exists()
+
+
+def test_generate_weekly_report_period_scoping(workspace, seeded_db, mock_ai):
+    from datetime import date, timedelta
+    # The seeded_db only has completions in the last 7 days.
+    # Generating a report for 20 days ago should result in 0% completion.
+    past_target = date.today() - timedelta(days=20)
+    data = rhs.generate_and_save_report(seeded_db, "weekly", report_date=past_target)
+    seeded_db.commit()
+    
+    row = seeded_db.execute("SELECT * FROM reports WHERE id = ?", (data["id"],)).fetchone()
+    md_file = Path(row["markdown_path"])
+    assert md_file.exists()
+    content = md_file.read_text()
+    
+    print("GENERATED REPORT CONTENT:\n", content)
+    # Verify that the generated markdown contains 0.0% completion rate (scoped)
+    # rather than the global 57.1% completion rate.
+    assert "Completion Rate:** 0.0%" in content
+    assert "Completion Rate:** 57" not in content

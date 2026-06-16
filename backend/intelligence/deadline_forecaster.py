@@ -83,6 +83,7 @@ def forecast_deadlines(db: sqlite3.Connection) -> dict:
             velocity_metric = f"{progress_per_week:.1f}% per week"
 
         forecasts.append({
+            "project_id": p["id"],
             "project_title": p["title"],
             "risk_level": risk,
             "warning_level": warning,
@@ -90,7 +91,12 @@ def forecast_deadlines(db: sqlite3.Connection) -> dict:
             "supporting_metrics": {
                 "days_remaining": days_remaining,
                 "velocity": velocity_metric,
-                "progress": f"{progress_pct}%"
+                "progress": f"{progress_pct}%",
+                "progress_pct": progress_pct,
+                "total_milestones": total_milestones,
+                "completed_milestones": completed_milestones,
+                "sample_size": max(days_elapsed, 1),
+                "data_completeness": 1.0 if p["deadline"] else 0.6,
             },
             "confidence": int(confidence)
         })

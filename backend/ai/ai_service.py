@@ -1,22 +1,28 @@
 import os
 import json
-import urllib.request
-import urllib.error
+from typing import Optional, Tuple, List
 
 from config import AI_ENV_PATH
 from services.logging_service import get_logger
 
+# Import providers
+from ai.providers.gemini_provider import GeminiProvider
+from ai.providers.groq_provider import GroqProvider
+from ai.providers.openrouter_provider import OpenRouterProvider
+from ai.providers.lmstudio_provider import LMStudioProvider
+from ai.providers.static_provider import StaticProvider
+
 logger = get_logger(__name__)
 
 # Setup environment defaults
-DEFAULT_OPENAI_MODEL = "gpt-4o"
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
+DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-chat-v3"
+DEFAULT_LMSTUDIO_MODEL = "google/gemma-4-12b-qat"
 
-# Placeholder embedded in reports when every provider fails. Keep this string
-# stable: report regeneration detects failed reports by matching on it.
 AI_FAILURE_PLACEHOLDER = "> [!WARNING]\n> AI generation failed to call models or models are unconfigured."
 
-def is_failed_reflection(reflection) -> bool:
+def is_failed_reflection(reflection: str) -> bool:
     """True when an AI reflection is missing or is the failure placeholder."""
     if not reflection:
         return True
@@ -28,14 +34,41 @@ class AIService:
         self._load_env_file()
         
         # Read configurations from environment variables
-        self.openai_key = os.getenv("OPENAI_API_KEY", "").strip()
         self.gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-        self.ai_provider = os.getenv("AI_PROVIDER", "gemini").strip().lower()
+        self.groq_key = os.getenv("GROQ_API_KEY", "").strip()
+        self.openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+        self.lmstudio_url = os.getenv("LMSTUDIO_URL", "http://localhost:1234").strip()
         
         # Configure model mappings
-        self.openai_model = os.getenv("AI_MODEL", DEFAULT_OPENAI_MODEL)
-        self.gemini_model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+        self.gemini_model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip()
+        self.groq_model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip()
+        self.openrouter_model = os.getenv("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL).strip()
+        self.lmstudio_model = os.getenv("LMSTUDIO_MODEL", DEFAULT_LMSTUDIO_MODEL).strip()
         
+        # Resolve active providers
+        self.primary_provider = os.getenv("AI_PROVIDER", "gemini").strip().lower()
+        order_str = os.getenv("AI_PROVIDER_ORDER", "").strip().lower()
+        if order_str:
+            self.provider_order = [p.strip() for p in order_str.split(",") if p.strip()]
+        else:
+            # Fallback to smart construction around primary_provider
+            default_chain = ["gemini", "groq", "openrouter", "lmstudio", "static"]
+            # Reorder so primary is first
+            if self.primary_provider in default_chain:
+                default_chain.remove(self.primary_provider)
+                self.provider_order = [self.primary_provider] + default_chain
+            else:
+                self.provider_order = default_chain
+
+        # Initialize provider instances
+        self.providers = {
+            "gemini": GeminiProvider(api_key=self.gemini_key, model=self.gemini_model),
+            "groq": GroqProvider(api_key=self.groq_key, model=self.groq_model),
+            "openrouter": OpenRouterProvider(api_key=self.openrouter_key, model=self.openrouter_model),
+            "lmstudio": LMStudioProvider(url=self.lmstudio_url, model=self.lmstudio_model),
+            "static": StaticProvider()
+        }
+
     def _load_env_file(self):
         env_path = AI_ENV_PATH
         if env_path.exists():
@@ -50,104 +83,54 @@ class AIService:
                             key = key.strip()
                             val = val.strip()
                             if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
-                                val = val[1:-1]
+                                  val = val[1:-1]
                             os.environ[key] = val
             except Exception as e:
                 logger.warning("Error loading .env file: %s", e)
-            
-    def generate_reflection(self, prompt: str) -> str:
+
+    def generate_reflection(self, prompt: str, context: Optional[object] = None) -> Tuple[str, str, str]:
         """
         Generates a behavioral reflection report using LLMs.
-        Selects provider dynamically based on AI_PROVIDER config.
-        Falls back to other provider if primary fails, and then to a local copy.
+        Sequentially runs through providers in self.provider_order.
+        If a provider fails (e.g. 429, timeout, network error), tries the next one.
+        Returns:
+             (reflection_text, provider_name, model_name)
         """
         errors = []
-        provider = self.ai_provider
         
-        # Determine execution order based on provider configuration
-        order = []
-        if provider == "openai":
-            order = [("openai", self._call_openai, self.openai_key), ("gemini", self._call_gemini, self.gemini_key)]
-        else:
-            order = [("gemini", self._call_gemini, self.gemini_key), ("openai", self._call_openai, self.openai_key)]
+        for provider_name in self.provider_order:
+            provider = self.providers.get(provider_name)
+            if not provider:
+                logger.warning("[AI] Unknown provider in chain: %s", provider_name)
+                continue
             
-        for name, call_fn, key in order:
-            if key:
-                logger.info("Attempting reflection generation with %s", name.upper())
-                try:
-                    reflection = call_fn(prompt)
-                    logger.info("Reflection generated using %s", name.upper())
-                    return reflection
-                except Exception as e:
-                    err_msg = f"{name.upper()} failed: {str(e)}"
-                    logger.warning(err_msg)
-                    errors.append(err_msg)
-            else:
-                msg = f"{name.upper()} API key is missing or not configured."
-                logger.info(msg)
-                errors.append(msg)
-            
-        # 3. Fail gracefully so the rest of the report can be generated
-        logger.warning("Both AI providers failed or were unconfigured.")
-        return AI_FAILURE_PLACEHOLDER
+            # Check configuration requirements
+            if provider_name in ("gemini", "groq", "openrouter") and not provider.api_key:
+                logger.info("[AI] Skipping %s: API key is not configured.", provider_name.upper())
+                errors.append(f"{provider_name.upper()} skipped: missing API key")
+                continue
 
-    def _call_gemini(self, prompt: str) -> str:
-        # Use v1beta generateContent endpoint
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_key}"
-        body = {
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "text": prompt
-                        }
-                    ]
-                }
-            ]
-        }
-        
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(body).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        
-        # 20 second timeout
-        with urllib.request.urlopen(req, timeout=20) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            
-        try:
-            return res_data["candidates"][0]["content"]["parts"][0]["text"]
-        except (KeyError, IndexError) as e:
-            raise KeyError(f"Invalid Gemini response structure: {res_data}") from e
+            logger.info("[AI] Attempting reflection generation with %s", provider_name.upper())
+            try:
+                # Static provider requires the context object
+                if provider_name == "static":
+                    reflection = provider.generate(prompt, context=context)
+                else:
+                    reflection = provider.generate(prompt)
 
-    def _call_openai(self, prompt: str) -> str:
-        url = "https://api.openai.com/v1/chat/completions"
-        body = {
-            "model": self.openai_model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        }
-        
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(body).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.openai_key}"
-            },
-            method="POST"
-        )
-        
-        with urllib.request.urlopen(req, timeout=20) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            
-        try:
-            return res_data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as e:
-            raise KeyError(f"Invalid OpenAI response structure: {res_data}") from e
+                logger.info("[AI] %s success", provider_name.upper())
+                return reflection, provider.name, provider.model
+
+            except Exception as e:
+                logger.warning("[AI] %s failed: %s", provider_name.upper(), e)
+                errors.append(f"{provider_name.upper()} failed: {e}")
+                
+                # Log fallback statement
+                next_index = self.provider_order.index(provider_name) + 1
+                if next_index < len(self.provider_order):
+                    next_provider_name = self.provider_order[next_index]
+                    logger.info("[AI] Falling back to %s", next_provider_name.upper())
+
+        # If everything fails, return the static failure placeholder
+        logger.error("[AI] All configured AI providers failed: %s", ", ".join(errors))
+        return AI_FAILURE_PLACEHOLDER, "failed", "none"

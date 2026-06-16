@@ -1,21 +1,36 @@
 :root {
-  --bg: #202426;
+  /* Rich slate dark mode colors */
+  --bg: #070c0e;
   --panel: #0b1318;
   --panel-2: #0f1a21;
-  --panel-3: #111c24;
-  --border: rgba(120, 144, 160, 0.18);
-  --border-2: rgba(120, 144, 160, 0.28);
+  --panel-3: #13222b;
+  --border: rgba(120, 144, 160, 0.15);
+  --border-2: rgba(120, 144, 160, 0.25);
+  --border-active: rgba(84, 209, 79, 0.45);
+  
   --text: #eef3f7;
-  --muted: #9ca9b3;
-  --muted-2: #758390;
+  --muted: #8ca1af;
+  --muted-2: #5c6c77;
+  
   --green: #54d14f;
-  --green-glow: rgba(84, 209, 79, 0.22);
-  --black-cell: #090f14;
-  --white-cell: #f1f3f4;
-  --future-cell: #131c24;
+  --green-glow: rgba(84, 209, 79, 0.15);
+  
   --accent: #43d45d;
+  --info: #4a90e2;
+  --warning: #ffaa00;
   --danger: #ff7a70;
+  
   --radius: 10px;
+  
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  
+  /* Typography */
+  --font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
 }
 
 *,
@@ -28,9 +43,9 @@
 
 body {
   min-height: 100vh;
-  background: #232323;
+  background: var(--bg);
   color: var(--text);
-  font: 14px/1.45 "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font: 14px/1.45 var(--font-family);
 }
 
 button,
@@ -957,3 +972,326 @@ textarea {
 #generate-report-btn:hover {
   opacity: 0.95;
 }
+
+/* Multi-page layout shell styles */
+.app-layout-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background: #091217;
+}
+
+.main-content-area {
+  padding: 24px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* Sidebar navigation styles */
+.sidebar-nav {
+  background: #0b1318;
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.sidebar-brand {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu-item a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.sidebar-menu-item a:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.sidebar-menu-item.active a {
+  background: rgba(84, 209, 79, 0.08);
+  color: var(--green);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--muted-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── UI Design System Standard Components ────────────────── */
+
+.ui-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-card:hover {
+  background: var(--panel-2);
+  border-color: var(--border-active);
+  transform: translateY(-2px);
+}
+
+.ui-metric-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+  position: relative;
+}
+
+.ui-metric-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-active);
+  background: var(--panel-2);
+}
+
+.ui-metric-card__label {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.ui-metric-card__value {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.ui-status-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  position: relative;
+}
+
+.ui-status-card--success {
+  border-left: 3px solid var(--green);
+  background: rgba(84, 209, 79, 0.03);
+}
+
+.ui-status-card--warning {
+  border-left: 3px solid var(--warning);
+  background: rgba(255, 170, 0, 0.03);
+}
+
+.ui-status-card--danger {
+  border-left: 3px solid var(--danger);
+  background: rgba(255, 122, 112, 0.03);
+}
+
+.ui-status-card--info {
+  border-left: 3px solid var(--info);
+  background: rgba(74, 144, 226, 0.03);
+}
+
+/* UI Buttons */
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 var(--space-md);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  outline: none;
+}
+
+.ui-btn-primary {
+  background: linear-gradient(180deg, #46b846, #3c9e3c);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.ui-btn-primary:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.ui-btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.ui-btn-secondary:hover {
+  background: var(--panel-2);
+  border-color: var(--border-2);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.ui-btn-danger {
+  background: rgba(255, 122, 112, 0.08);
+  color: var(--danger);
+  border: 1px solid rgba(255, 122, 112, 0.2);
+}
+
+.ui-btn-danger:hover {
+  background: var(--danger);
+  color: #000;
+  border-color: var(--danger);
+  transform: translateY(-1px);
+}
+
+/* UI Forms & Inputs */
+.ui-form-input {
+  background: #060b0e;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px var(--space-sm);
+  font-size: 13px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  outline: none;
+}
+
+.ui-form-input:focus {
+  border-color: var(--border-active);
+  box-shadow: 0 0 8px rgba(84, 209, 79, 0.15);
+}
+
+/* UI Tables */
+.ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.ui-table th {
+  padding: 12px var(--space-md);
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.ui-table td {
+  padding: 12px var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text);
+}
+
+.ui-table tr:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* UI Badges & Pills */
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.ui-badge--success {
+  background: rgba(84, 209, 79, 0.15);
+  color: var(--green);
+}
+
+.ui-badge--info {
+  background: rgba(74, 144, 226, 0.15);
+  color: var(--info);
+}
+
+.ui-badge--warning {
+  background: rgba(255, 170, 0, 0.15);
+  color: var(--warning);
+}
+
+.ui-badge--danger {
+  background: rgba(255, 122, 112, 0.15);
+  color: var(--danger);
+}
+
+.ui-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* UI Chart Wrapper */
+.ui-chart-wrapper {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* UI Drawer / Modal Base Outlines */
+.ui-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 11, 14, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: -1;
+}
+
+

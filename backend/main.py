@@ -4,9 +4,11 @@ Productivity Tracker - FastAPI Backend
 Phase 3 Prep: Service Layer Refactor
 """
 
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import BASE_DIR, FRONTEND_DIR
@@ -20,8 +22,60 @@ from routes.focus import router as focus_router
 from routes.reminders import router as reminders_router
 from routes.intelligence import router as intelligence_router
 from routes.settings import router as settings_router
+from routes.daily_notes import router as daily_notes_router
+from services.logging_service import get_logger
 
-app = FastAPI(title="Productivity Tracker API", version="1.3.0")
+logger = get_logger(__name__)
+
+async def run_maintenance_tasks():
+    logger.info("[Lifespan] Starting background maintenance tasks...")
+    # Sleep 1.0s to allow the server to launch and bind
+    await asyncio.sleep(1.0)
+    
+    from database.db import get_db
+    from services.report_audit_service import run_report_audit
+    from intelligence.snapshot_service import save_snapshot
+    
+    try:
+        with get_db() as db:
+            logger.info("[Lifespan] Running report audit...")
+            run_report_audit(db)
+            
+            logger.info("[Lifespan] Running snapshot audit...")
+            save_snapshot(db, "auto")
+            
+            logger.info("[Lifespan] Background maintenance tasks complete.")
+    except Exception as e:
+        logger.error("[Lifespan] Error running background maintenance tasks: %s", e)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 1. Run migrations on startup
+    init_db()
+    
+    # 2. Run database/filesystem integrity checks
+    from database.db import get_db
+    from services.integrity_service import run_integrity_check
+    try:
+        with get_db() as db:
+            run_integrity_check(db)
+    except Exception as e:
+        logger.error("[Lifespan] Integrity check failed during startup: %s", e)
+        
+    # 3. Server ready (app starts serving requests)
+    # 4. Spawning post-startup background maintenance task
+    maintenance_task = asyncio.create_task(run_maintenance_tasks())
+    
+    yield
+    
+    # Cancel task on shutdown
+    maintenance_task.cancel()
+    try:
+        await maintenance_task
+    except asyncio.CancelledError:
+        pass
+
+app = FastAPI(title="Productivity Tracker API", version="1.3.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,26 +91,35 @@ app.include_router(projects_router, prefix="/api")
 app.include_router(scores_router, prefix="/api")
 app.include_router(focus_router, prefix="/api")
 app.include_router(reminders_router, prefix="/api")
+app.include_router(daily_notes_router, prefix="/api")
 app.include_router(intelligence_router, prefix="/api/intelligence")
 app.include_router(settings_router, prefix="/api/settings")
 
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
-@app.on_event("startup")
-def startup():
-    # Single schema authority: init_db() runs the unified migration runner
-    # (backend/database/migrations.py).
-    init_db()
-    from database.db import get_db
-    from services.report_audit_service import run_report_audit
-    from services.integrity_service import run_integrity_check
-    with get_db() as db:
-        run_integrity_check(db)
-        run_report_audit(db)
-
 @app.get("/")
 def serve_index():
-    return FileResponse(str(FRONTEND_DIR / "index.html"))
+    return RedirectResponse("/dashboard")
+
+@app.get("/dashboard")
+def serve_dashboard():
+    return FileResponse(str(FRONTEND_DIR / "dashboard.html"))
+
+@app.get("/tasks")
+def serve_tasks():
+    return FileResponse(str(FRONTEND_DIR / "tasks.html"))
+
+@app.get("/goals")
+def serve_goals():
+    return FileResponse(str(FRONTEND_DIR / "goals.html"))
+
+@app.get("/projects")
+def serve_projects():
+    return FileResponse(str(FRONTEND_DIR / "projects.html"))
+
+@app.get("/insights")
+def serve_insights():
+    return FileResponse(str(FRONTEND_DIR / "insights.html"))
 
 @app.get("/reports")
 def serve_reports():

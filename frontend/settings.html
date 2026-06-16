@@ -4,34 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Settings - Productivity Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <link rel="stylesheet" href="/static/css/style.css" />
   <style>
     .settings-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
     }
     .settings-section {
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: var(--radius);
       padding: 20px;
-      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
     .settings-section h2 {
       margin-top: 0;
       margin-bottom: 16px;
-      font-size: 18px;
+      font-size: 16px;
+      font-weight: 600;
       color: var(--text);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border-subtle);
       padding-bottom: 8px;
     }
     .stat-row {
       display: flex;
       justify-content: space-between;
       padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
     }
     .stat-row:last-child {
       border-bottom: none;
@@ -40,7 +42,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(0,0,0,0.2);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
       padding: 12px;
       border-radius: 6px;
       margin-bottom: 8px;
@@ -58,48 +61,84 @@
 </head>
 <body>
 
-<header class="app-header">
-  <div class="header-top">
-    <div class="header-month">
-      <h1 class="month-title">⚙️ System Settings & Health</h1>
-    </div>
-    <div class="header-stats-grid">
-      <a href="/" class="btn-secondary" style="text-decoration: none;">🏠 Back to Dashboard</a>
-    </div>
-  </div>
-</header>
-
-<div class="settings-container">
-  
-  <div class="settings-section">
-    <h2>Data Backups & Export</h2>
-    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-      <button class="btn-primary" id="btn-create-backup">💾 Create Backup Now</button>
-      <a href="/api/settings/export" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center;">📦 Download Export Archive</a>
-    </div>
-    
-    <h3>Available Backups</h3>
-    <div id="backups-list">
-      <div style="color: var(--muted); font-size: 13px;">Loading backups...</div>
-    </div>
-  </div>
-
-  <div class="settings-section">
-    <h2>System Health (Database)</h2>
-    <div id="health-stats">
-      <div style="color: var(--muted); font-size: 13px;">Loading health stats...</div>
-    </div>
-  </div>
-  
-  <div class="settings-section">
-    <h2>Storage Usage</h2>
-    <div id="storage-stats">
-      <div style="color: var(--muted); font-size: 13px;">Loading storage stats...</div>
-    </div>
-  </div>
-
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
 </div>
 
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <div class="app">
+      <div class="settings-container">
+        
+        <div class="settings-section" style="border-left: 3px solid var(--info);">
+          <h2>Data Backups & Export</h2>
+          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <button class="ui-btn ui-btn-primary" id="btn-create-backup">💾 Create Backup Now</button>
+            <a href="/api/settings/export" class="ui-btn ui-btn-secondary">📦 Download Export Archive</a>
+          </div>
+          
+          <div id="backup-status-summary" style="margin-bottom: 16px; font-size: 13px; color: var(--muted);"></div>
+          
+          <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--text); font-weight: 600;">Available Backups</h3>
+          <div id="backups-list">
+            <div style="color: var(--muted); font-size: 13px;">Loading backups...</div>
+          </div>
+        </div>
+
+        <div class="settings-section" style="border-left: 3px solid var(--warning);">
+          <h2>System Health & Startup Integrity</h2>
+          <div id="health-stats">
+            <div style="color: var(--muted); font-size: 13px;">Loading health stats...</div>
+          </div>
+          <h3 style="margin-top: 16px; font-size: 14px; margin-bottom: 8px; color: var(--text); font-weight: 600;">Integrity Status</h3>
+          <div id="integrity-stats">
+            <div style="color: var(--muted); font-size: 13px;">Loading integrity...</div>
+          </div>
+        </div>
+
+        <div class="settings-section" style="border-left: 3px solid var(--accent);">
+          <h2>AI Provider Settings</h2>
+          <div style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">
+            Configure and test multi-provider fallback settings. The system automatically shifts to the next provider in the fallback order if a model is rate-limited (429) or offline.
+          </div>
+          
+          <div class="stat-row">
+            <span>Primary Provider</span>
+            <span id="ai-primary-provider" style="font-weight:bold; text-transform:uppercase; color: var(--accent);">Loading...</span>
+          </div>
+          <div class="stat-row">
+            <span>Fallback Order</span>
+            <span id="ai-fallback-order" style="font-weight:bold; color: var(--text);">Loading...</span>
+          </div>
+
+          <h3 style="margin-top: 16px; font-size: 14px; margin-bottom: 12px; color: var(--text); font-weight: 600;">Provider Health & Connection</h3>
+          <div id="ai-providers-health">
+            <div style="color: var(--muted); font-size: 13px;">Loading health...</div>
+          </div>
+        </div>
+        
+        <div class="settings-section" style="border-left: 3px solid var(--muted);">
+          <h2>Storage Usage</h2>
+          <div id="storage-stats">
+            <div style="color: var(--muted); font-size: 13px;">Loading storage stats...</div>
+          </div>
+        </div>
+
+      </div>
+
+      <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+        local-first · no cloud · no auth · phase 1
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script type="module" src="/static/js/navigation.js"></script>
 <script type="module" src="/static/js/settings.js"></script>
 </body>
 </html>

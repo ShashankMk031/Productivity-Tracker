@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Productivity Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/strategic.css" />
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <!-- Day Reset Info Badge -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-md);">
+      <div class="ui-pill" style="font-size: 11px; gap: 6px;">
+        <span class="reset-icon">◔</span>
+        <span id="day-reset-indicator">Day resets at 04:00 AM (IST)</span>
+      </div>
+    </div>
+
+    <!-- Scoring Engine Panel -->
+    <div class="scores-panel-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div class="ui-metric-card" style="border-left: 3px solid var(--green);">
+        <span class="ui-metric-card__label">Consistency Score</span>
+        <span class="ui-metric-card__value" id="score-consistency" style="color: var(--green);">--</span>
+      </div>
+      <div class="ui-metric-card" style="border-left: 3px solid var(--warning);">
+        <span class="ui-metric-card__label">Execution Score</span>
+        <span class="ui-metric-card__value" id="score-execution" style="color: var(--warning);">--</span>
+      </div>
+      <div class="ui-metric-card" style="border-left: 3px solid var(--info);">
+        <span class="ui-metric-card__label">Goal Progress Score</span>
+        <span class="ui-metric-card__value" id="score-goal-progress" style="color: var(--info);">--</span>
+      </div>
+    </div>
+
+    <!-- Today's Focus & Execution Center -->
+    <section class="strategic-section" id="today-center-section" style="margin-top: 16px; margin-bottom: 24px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        
+        <!-- Column 1: Focus Session Engine -->
+        <div class="ui-card" style="border-left: 3px solid var(--green); display: flex; flex-direction: column;">
+          <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">🎯 Focus Session Timer</h2>
+          <div id="active-focus-container" style="display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center;">
+            <div id="focus-idle-state">
+              <input type="text" id="focus-session-title-input" class="ui-form-input" placeholder="What are you working on?..." style="margin-bottom: 12px;" />
+              <button class="ui-btn ui-btn-primary" id="btn-start-focus" style="width: 100%;">⏱️ Start Focus Session</button>
+            </div>
+            
+            <div id="focus-active-state" class="hidden" style="text-align: center; display: flex; flex-direction: column; gap: 10px;">
+              <div id="focus-active-title" style="font-weight: 600; font-size: 14px; color: var(--text);">Focusing on ...</div>
+              <div id="focus-active-timer" style="font-size: 32px; font-weight: 700; color: var(--green); font-family: monospace; text-shadow: 0 0 10px rgba(84, 209, 79, 0.3); margin: 8px 0;">00:00:00</div>
+              <input type="text" id="focus-session-notes-input" class="ui-form-input" placeholder="Optional session notes..." style="margin-bottom: 8px;" />
+              <button class="ui-btn ui-btn-danger" id="btn-stop-focus" style="width: 100%;">⏹️ Stop & Save Session</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Column 2: Today's Tasks & Deadlines -->
+        <div class="ui-card" style="border-left: 3px solid var(--info); display: flex; flex-direction: column;">
+          <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">📅 Today's Schedule & Deadlines</h2>
+          <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+            <div id="today-tasks-container">
+              <h4 style="font-size: 11px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-weight: 600;">Active Habits Scheduled Today</h4>
+              <div id="today-tasks-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto;">
+                <!-- Habits active today -->
+              </div>
+            </div>
+            <div id="upcoming-deadlines-container" style="border-top: 1px solid var(--border); padding-top: 10px;">
+              <h4 style="font-size: 11px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-weight: 600;">Upcoming Project Deadlines</h4>
+              <div id="today-deadlines-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 100px; overflow-y: auto;">
+                <!-- Project countdown alert entries -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Column 3: Active Reminders Widget -->
+        <div class="ui-card" style="border-left: 3px solid var(--warning); display: flex; flex-direction: column;">
+          <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">🔔 Active Tasks Reminders</h2>
+          <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+            <!-- Quick Add Reminder -->
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="reminder-title-input" class="ui-form-input" placeholder="Reminder title..." />
+              <input type="time" id="reminder-time-input" class="ui-form-input" style="width: 110px;" />
+              <button class="ui-btn ui-btn-primary" id="btn-add-reminder" style="padding: 0 14px;">Add</button>
+            </div>
+            <!-- Active Reminders list -->
+            <div id="today-reminders-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; flex: 1;">
+              <!-- Incomplete reminders listed here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 4: Daily Journal Note -->
+        <div class="ui-card" style="border-left: 3px solid #ff00aa; display: flex; flex-direction: column;">
+          <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">📝 Daily Journal Note</h2>
+          <div style="display: flex; flex-direction: column; gap: 10px; flex: 1;">
+            <textarea id="today-journal-input" class="ui-form-input" placeholder="Type today's general thoughts, journal notes, or workspace status log here..." style="flex: 1; resize: vertical; min-height: 100px; padding: 10px; font-size: 13px; line-height: 1.4;" maxlength="1000"></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span id="journal-save-status" style="font-size: 11px; color: var(--muted);">Saved.</span>
+              <kbd style="background: rgba(255,255,255,0.05); border-radius: 4px; padding: 2px 6px; font-size: 9px; font-family: monospace; color: var(--muted); border: 1px solid var(--border);">Ctrl+Enter to save & blur</kbd>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </section>
+
+    <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+      local-first · no cloud · no auth · phase 1
+    </footer>
+  </main>
+</div>
+
+<script type="module" src="/static/js/navigation.js"></script>
+<script type="module">
+  import { initProductivityOS } from "/static/js/productivity_os.js";
+  initProductivityOS();
+</script>
+</body>
+</html>

@@ -55,8 +55,9 @@ def test_pipeline():
     print("\n[Step 3] Executing AIService Reflection...")
     try:
         ai_service = AIService()
-        reflection = ai_service.generate_reflection(prompt)
+        reflection, provider, model = ai_service.generate_reflection(prompt)
         print("✓ Mock AI Reflection successfully rendered!")
+        print(f"  - Active Provider: {provider} ({model})")
         print("--- REFLECTION PREVIEW (First 300 characters) ---")
         print(reflection[:300] + "\n...")
         print("---------------------------------------------")

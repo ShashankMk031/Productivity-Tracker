@@ -32,10 +32,13 @@ export async function initProductivityOS() {
 
     // Initial load of all modules
     await refreshAllOSModules();
+    await initDailyNotesJournal();
 
     // Start 60-second background ticking daemon for Reminders
     if (reminderCheckInterval) clearInterval(reminderCheckInterval);
     reminderCheckInterval = setInterval(checkRemindersDaemon, 60000);
+    // Run immediately on startup
+    await checkRemindersDaemon();
     
     // Refresh scores and widgets every 30 seconds
     if (scoresInterval) clearInterval(scoresInterval);
@@ -202,7 +205,7 @@ async function refreshTodaySchedule() {
             
             const scheduledToday = tasks.filter(t => {
                 try {
-                    const days = JSON.parse(t.active_days);
+                    const days = Array.isArray(t.active_days) ? t.active_days : JSON.parse(t.active_days);
                     return days.includes(todayWk);
                 } catch (e) {
                     return true;
@@ -378,6 +381,8 @@ async function handleDeleteReminder(id) {
 }
 
 // ── 5. NOTIFICATION DAEMON ────────────────────────────────────────────────────
+const alertedOverdueReminders = new Set();
+
 function requestNotificationPermission() {
     if ("Notification" in window) {
         if (Notification.permission === "default") {
@@ -387,13 +392,15 @@ function requestNotificationPermission() {
 }
 
 async function checkRemindersDaemon() {
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const isNotificationGranted = ("Notification" in window) && Notification.permission === "granted";
     
     try {
         const reminders = await fetchAPI('/reminders/active');
         const now = new Date();
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
         const nowDayStr = now.toISOString().split("T")[0];
+        
+        const overdueList = [];
         
         reminders.forEach(rem => {
             const remDate = new Date(rem.datetime);
@@ -402,17 +409,36 @@ async function checkRemindersDaemon() {
             
             // Check if reminder is due in this exact minute and day matching today
             if (remMinutes === nowMinutes && remDayStr === nowDayStr) {
-                new Notification(`🔔 Productivity Reminder: "${rem.title}"`, {
-                    body: `It's time to execute: ${rem.title}. Keep up the momentum!`,
-                    icon: '/static/favicon.svg'
-                });
+                if (isNotificationGranted) {
+                    new Notification(`🔔 Productivity Reminder: "${rem.title}"`, {
+                        body: `It's time to execute: ${rem.title}. Keep up the momentum!`,
+                        icon: '/static/favicon.svg'
+                    });
+                } else {
+                    toast(`🔔 Reminder: "${rem.title}"`, "info");
+                }
                 
                 // Auto toggle completed on backend to avoid double alerts
                 fetchAPI(`/reminders/${rem.id}/toggle`, { method: 'POST' }).then(() => {
                     refreshRemindersList();
                 });
+            } else if (now - remDate > 60000) {
+                // Reminder is in the past (more than 1 minute ago) and still active
+                if (!alertedOverdueReminders.has(rem.id)) {
+                    overdueList.push(rem);
+                    alertedOverdueReminders.add(rem.id);
+                }
             }
         });
+        
+        // Alert user about overdue reminders
+        if (overdueList.length > 0) {
+            if (overdueList.length === 1) {
+                toast(`⚠️ Overdue Reminder: "${overdueList[0].title}" is past due!`, "warning");
+            } else {
+                toast(`⚠️ You have ${overdueList.length} overdue reminders (e.g. "${overdueList[0].title}").`, "warning");
+            }
+        }
         
         // Also check project deadline countdowns daily for 7, 3, or 1 days
         const projects = await fetchAPI('/projects');
@@ -423,14 +449,59 @@ async function checkRemindersDaemon() {
             // Alert exactly at 9:00 AM local time to avoid repeated noise
             if (now.getHours() === 9 && now.getMinutes() === 0) {
                 if (diffDays === 7 || diffDays === 3 || diffDays === 1) {
-                    new Notification(`⚠️ Project Deadline approaching!`, {
-                        body: `"${proj.title}" has ${diffDays} day(s) left! Adhere to your milestones.`,
-                        icon: '/static/favicon.svg'
-                    });
+                    if (isNotificationGranted) {
+                        new Notification(`⚠️ Project Deadline approaching!`, {
+                            body: `"${proj.title}" has ${diffDays} day(s) left! Adhere to your milestones.`,
+                            icon: '/static/favicon.svg'
+                        });
+                    } else {
+                        toast(`⚠️ Project Deadline: "${proj.title}" has ${diffDays} day(s) left!`, "warning");
+                    }
                 }
             }
         });
     } catch (err) {
         console.warn("[Notification Daemon] Background check failed", err);
     }
+}
+
+// ── 6. DAILY NOTES JOURNAL ───────────────────────────────────────────────────
+async function initDailyNotesJournal() {
+    const journalInput = document.getElementById("today-journal-input");
+    const saveStatus = document.getElementById("journal-save-status");
+    if (!journalInput) return;
+
+    const todayStr = getLogicalTodayIST();
+    
+    // Load today's note
+    try {
+        const res = await fetchAPI(`/daily-notes/${todayStr}`);
+        journalInput.value = res.content || "";
+        if (saveStatus) saveStatus.textContent = "Saved.";
+    } catch (err) {
+        console.warn("Failed to load today's daily note", err);
+    }
+
+    // Save logic
+    const saveNoteAction = async () => {
+        if (saveStatus) saveStatus.textContent = "Saving...";
+        try {
+            await fetchAPI(`/daily-notes/${todayStr}`, {
+                method: "PUT",
+                body: JSON.stringify({ content: journalInput.value })
+            });
+            if (saveStatus) saveStatus.textContent = "Saved.";
+        } catch (err) {
+            console.error("Failed to save daily note", err);
+            if (saveStatus) saveStatus.textContent = "Save failed.";
+        }
+    };
+
+    journalInput.addEventListener("blur", saveNoteAction);
+    journalInput.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+            e.preventDefault();
+            journalInput.blur();
+        }
+    });
 }

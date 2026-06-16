@@ -20,6 +20,14 @@ def _serialize_project(db: sqlite3.Connection, row: sqlite3.Row) -> dict:
     # Append countdown info
     countdown = get_countdown_info(proj["deadline"])
     proj["countdown"] = countdown
+
+    # Fetch linked goal title
+    if proj.get("goal_id"):
+        goal_row = db.execute("SELECT title FROM goals WHERE id = ?", (proj["goal_id"],)).fetchone()
+        proj["goal_title"] = goal_row[0] if goal_row else None
+    else:
+        proj["goal_title"] = None
+
     return proj
 
 def get_all_projects(db: sqlite3.Connection) -> list[dict]:
@@ -32,16 +40,45 @@ def get_project(db: sqlite3.Connection, project_id: int) -> dict:
         raise HTTPException(404, "Project not found")
     return _serialize_project(db, row)
 
+def update_goal_progress_from_projects(db: sqlite3.Connection, goal_id: int):
+    if not goal_id:
+        return
+    rows = db.execute("SELECT id, progress FROM projects WHERE goal_id = ?", (goal_id,)).fetchall()
+    if not rows:
+        return
+    
+    total_progress = 0
+    count = 0
+    for r in rows:
+        proj_id = r["id"]
+        # Recalculate project progress using milestones in DB directly
+        milestones = db.execute("SELECT completed FROM project_milestones WHERE project_id = ?", (proj_id,)).fetchall()
+        if milestones:
+            completed_ms = sum(1 for m in milestones if m[0])
+            prog = int((completed_ms / len(milestones)) * 100)
+        else:
+            prog = r["progress"]
+        total_progress += prog
+        count += 1
+        
+    if count > 0:
+        avg_progress = int(total_progress / count)
+        completed = 1 if avg_progress >= 100 else 0
+        db.execute(
+            "UPDATE goals SET progress = ?, completed = ? WHERE id = ?",
+            (avg_progress, completed, goal_id)
+        )
+
 def create_project(db: sqlite3.Connection, data: ProjectCreate) -> dict:
     title = data.title.strip()
     created_at = get_logical_date_ist().isoformat()
     
     cur = db.execute(
         """
-        INSERT INTO projects (title, description, deadline, priority, created_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO projects (title, description, deadline, priority, created_at, goal_id)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (title, data.description, data.deadline, data.priority or 0, created_at)
+        (title, data.description, data.deadline, data.priority or 0, created_at, data.goal_id)
     )
     project_id = cur.lastrowid
 
@@ -53,10 +90,14 @@ def create_project(db: sqlite3.Connection, data: ProjectCreate) -> dict:
                     (project_id, ms_title.strip(), created_at)
                 )
 
+    if data.goal_id:
+        update_goal_progress_from_projects(db, data.goal_id)
+
     return get_project(db, project_id)
 
 def update_project(db: sqlite3.Connection, project_id: int, data: ProjectUpdate) -> dict:
     project = get_project(db, project_id)
+    old_goal_id = project.get("goal_id")
     
     title = data.title.strip() if data.title is not None else project["title"]
     description = data.description if data.description is not None else project["description"]
@@ -65,20 +106,29 @@ def update_project(db: sqlite3.Connection, project_id: int, data: ProjectUpdate)
     progress = data.progress if data.progress is not None else project["progress"]
     completed = data.completed if data.completed is not None else project["completed"]
     completed_at = data.completed_at if hasattr(data, 'completed_at') and data.completed_at is not None else project.get("completed_at")
+    goal_id = data.goal_id if data.goal_id is not None else old_goal_id
 
     db.execute(
         """
         UPDATE projects
-        SET title = ?, description = ?, deadline = ?, priority = ?, progress = ?, completed = ?, completed_at = ?
+        SET title = ?, description = ?, deadline = ?, priority = ?, progress = ?, completed = ?, completed_at = ?, goal_id = ?
         WHERE id = ?
         """,
-        (title, description, deadline, priority, progress, completed, completed_at, project_id)
+        (title, description, deadline, priority, progress, completed, completed_at, goal_id, project_id)
     )
+    
+    if old_goal_id:
+        update_goal_progress_from_projects(db, old_goal_id)
+    if goal_id and goal_id != old_goal_id:
+        update_goal_progress_from_projects(db, goal_id)
+
     return get_project(db, project_id)
 
 def delete_project(db: sqlite3.Connection, project_id: int):
-    get_project(db, project_id)
+    project = get_project(db, project_id)
     db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    if project.get("goal_id"):
+        update_goal_progress_from_projects(db, project["goal_id"])
 
 # --- Milestones ---
 
@@ -97,8 +147,11 @@ def create_milestone(db: sqlite3.Connection, project_id: int, data: MilestoneCre
         "INSERT INTO project_milestones (project_id, title, created_at) VALUES (?, ?, ?)",
         (project_id, title, created_at)
     )
-    # Return the updated project so the UI has the new progress
-    return get_project(db, project_id)
+    
+    project = get_project(db, project_id)
+    if project.get("goal_id"):
+        update_goal_progress_from_projects(db, project["goal_id"])
+    return project
 
 def update_milestone(db: sqlite3.Connection, milestone_id: int, data: MilestoneUpdate) -> dict:
     milestone = get_milestone(db, milestone_id)
@@ -109,9 +162,17 @@ def update_milestone(db: sqlite3.Connection, milestone_id: int, data: MilestoneU
         "UPDATE project_milestones SET title = ?, completed = ? WHERE id = ?",
         (title, completed, milestone_id)
     )
-    return get_project(db, milestone["project_id"])
+    
+    project = get_project(db, milestone["project_id"])
+    if project.get("goal_id"):
+        update_goal_progress_from_projects(db, project["goal_id"])
+    return project
 
 def delete_milestone(db: sqlite3.Connection, milestone_id: int) -> dict:
     milestone = get_milestone(db, milestone_id)
     db.execute("DELETE FROM project_milestones WHERE id = ?", (milestone_id,))
-    return get_project(db, milestone["project_id"])
+    
+    project = get_project(db, milestone["project_id"])
+    if project.get("goal_id"):
+        update_goal_progress_from_projects(db, project["goal_id"])
+    return project

@@ -33,7 +33,7 @@ def run_report_audit(db: sqlite3.Connection):
     today = get_logical_date_ist()
     
     # 1. Weekly Check
-    w_start, w_end = get_latest_completed_week_bounds(today)
+    _, w_end = get_latest_completed_week_bounds(today)
     w_end_str = w_end.isoformat()
     
     existing_weekly = db.execute(
@@ -52,7 +52,7 @@ def run_report_audit(db: sqlite3.Connection):
         logger.info("Weekly report for period ending %s already exists (ID %s)", w_end_str, existing_weekly["id"])
 
     # 2. Monthly Check
-    m_start, m_end = get_previous_month_bounds(today)
+    _, m_end = get_previous_month_bounds(today)
     m_end_str = m_end.isoformat()
     
     existing_monthly = db.execute(

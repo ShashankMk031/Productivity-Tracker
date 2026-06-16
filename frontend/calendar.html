@@ -8,12 +8,11 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/strategic.css" />
   <style>
-    /* Dedicated Calendar Visual Stylings */
+    /* Dedicated Calendar Visual Stylings aligned with HSL colors */
     .calendar-wrapper {
       display: flex;
       flex-direction: column;
       gap: 20px;
-      margin-top: 24px;
     }
     
     .calendar-grid-container {
@@ -21,7 +20,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 24px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
       position: relative;
     }
     
@@ -32,7 +31,7 @@
       left: 0;
       width: 100%;
       height: 4px;
-      background: linear-gradient(90deg, var(--green), #4a90e2, #ffaa00);
+      background: linear-gradient(90deg, var(--green), var(--info), var(--warning));
       border-top-left-radius: var(--radius);
       border-top-right-radius: var(--radius);
     }
@@ -71,7 +70,7 @@
     
     .calendar-day-cell:hover {
       background: rgba(255, 255, 255, 0.03);
-      border-color: var(--border-2);
+      border-color: var(--border-active);
       transform: translateY(-2px);
     }
     
@@ -149,6 +148,18 @@
       color: #ffaa00;
       border: 1px dashed rgba(255, 170, 0, 0.3);
     }
+
+    .calendar-item-pill--focus {
+      background: rgba(84, 209, 79, 0.1);
+      color: var(--green);
+      border: 1px dashed rgba(84, 209, 79, 0.3);
+    }
+
+    .calendar-item-pill--reminder {
+      background: rgba(255, 170, 0, 0.1);
+      color: #ffaa00;
+      border: 1px dashed rgba(255, 170, 0, 0.3);
+    }
     
     .calendar-legend-bar {
       display: flex;
@@ -163,62 +174,78 @@
 </head>
 <body>
 
+<!-- Loading overlay -->
 <div id="loading-overlay">
   <div class="spinner"></div>
 </div>
 
-<div class="app">
-  <header class="app-header">
-    <div class="header-top">
-      <div class="header-month">
-        <a href="/" class="nav-btn" style="text-decoration: none; font-size: 13px; padding: 6px 12px; height: 32px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 6px; background: rgba(255,255,255,0.03); color: #d9e0e6; font-weight: 600; cursor: pointer;">
-          🏠 Tracker Dashboard
-        </a>
-        <h1 class="month-title" style="margin-left: 12px;">Monthly Calendar View</h1>
-      </div>
-      
-      <div class="header-stats-grid" style="display: flex; gap: 8px; align-items: center;">
-        <button class="nav-btn" id="cal-prev-month" title="Previous Month">‹</button>
-        <span id="cal-month-label" style="font-size: 16px; font-weight: 700; color: var(--text); min-width: 140px; text-align: center;">— —</span>
-        <button class="nav-btn" id="cal-next-month" title="Next Month">›</button>
-      </div>
-    </div>
-  </header>
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
 
-  <div class="calendar-wrapper">
-    <div class="calendar-grid-container">
-      <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
-        <div class="calendar-weekday-header">Mon</div>
-        <div class="calendar-weekday-header">Tue</div>
-        <div class="calendar-weekday-header">Wed</div>
-        <div class="calendar-weekday-header">Thu</div>
-        <div class="calendar-weekday-header">Fri</div>
-        <div class="calendar-weekday-header">Sat</div>
-        <div class="calendar-weekday-header">Sun</div>
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <div class="app">
+      <!-- Calendar Navigation Bar -->
+      <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-md);">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="ui-btn ui-btn-secondary" id="cal-prev-month" title="Previous Month" style="padding: 0 12px; height: 32px;">‹</button>
+          <span id="cal-month-label" style="font-size: 16px; font-weight: 700; color: var(--text); min-width: 140px; text-align: center;">— —</span>
+          <button class="ui-btn ui-btn-secondary" id="cal-next-month" title="Next Month" style="padding: 0 12px; height: 32px;">›</button>
+        </div>
       </div>
-      
-      <div class="calendar-month-grid" id="calendar-grid-body">
-        <!-- Day cells injected dynamically -->
-      </div>
-      
-      <!-- Calendar Legend -->
-      <div class="calendar-legend-bar">
-        <span class="legend-item"><span class="legend-swatch" style="background: rgba(84, 209, 79, 0.2); border: 1px solid var(--green);"></span> Habit Completed</span>
-        <span class="legend-item"><span class="legend-swatch" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border);"></span> Habit Pending</span>
-        <span class="legend-item"><span class="legend-swatch" style="background: rgba(255, 122, 112, 0.2); border: 1px solid var(--danger);"></span> Project Deadline</span>
-        <span class="legend-item"><span class="legend-swatch" style="background: rgba(255, 170, 0, 0.2); border: 1px dashed #ffaa00;"></span> Project ToDo/Milestone</span>
-        <span class="legend-item"><span class="legend-swatch" style="background: rgba(74, 144, 226, 0.2); border: 1px solid #4a90e2;"></span> Goal Target</span>
-      </div>
-    </div>
-  </div>
 
-  <footer class="app-footer">
-    local-first · no cloud · no auth · phase 1
-  </footer>
+      <div class="calendar-wrapper">
+        <div class="calendar-grid-container">
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+            <div class="calendar-weekday-header">Mon</div>
+            <div class="calendar-weekday-header">Tue</div>
+            <div class="calendar-weekday-header">Wed</div>
+            <div class="calendar-weekday-header">Thu</div>
+            <div class="calendar-weekday-header">Fri</div>
+            <div class="calendar-weekday-header">Sat</div>
+            <div class="calendar-weekday-header">Sun</div>
+          </div>
+          
+          <div class="calendar-month-grid" id="calendar-grid-body">
+            <!-- Day cells injected dynamically -->
+          </div>
+          
+          <!-- Calendar Legend -->
+          <div class="calendar-legend-bar" style="font-size: 12px;">
+            <span class="legend-item" style="display: flex; align-items: center; gap: 6px;"><span class="legend-swatch" style="width: 12px; height: 12px; border-radius: 3px; background: rgba(84, 209, 79, 0.2); border: 1px solid var(--green);"></span> Habit Completed</span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 6px;"><span class="legend-swatch" style="width: 12px; height: 12px; border-radius: 3px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border);"></span> Habit Pending</span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 6px;"><span class="legend-swatch" style="width: 12px; height: 12px; border-radius: 3px; background: rgba(255, 122, 112, 0.2); border: 1px solid var(--danger);"></span> Project Deadline</span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 6px;"><span class="legend-swatch" style="width: 12px; height: 12px; border-radius: 3px; background: rgba(255, 170, 0, 0.2); border: 1px dashed #ffaa00;"></span> Project ToDo/Milestone</span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 6px;"><span class="legend-swatch" style="width: 12px; height: 12px; border-radius: 3px; background: rgba(74, 144, 226, 0.2); border: 1px solid #4a90e2;"></span> Goal Target</span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 6px;"><span class="legend-swatch" style="width: 12px; height: 12px; border-radius: 3px; background: rgba(84, 209, 79, 0.1); border: 1px dashed rgba(84, 209, 79, 0.3);"></span> Focus Session</span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 6px;"><span class="legend-swatch" style="width: 12px; height: 12px; border-radius: 3px; background: rgba(255, 170, 0, 0.1); border: 1px dashed rgba(255, 170, 0, 0.3);"></span> Reminder</span>
+          </div>
+        </div>
+      </div>
+
+      <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+        local-first · no cloud · no auth · phase 1
+      </footer>
+    </div>
+  </main>
 </div>
 
-<div id="toast" role="status" aria-live="polite"></div>
+<!-- Day Detail Modal -->
+<div class="modal-backdrop" id="day-detail-modal">
+  <div id="day-detail-modal-overlay" class="ui-modal-overlay"></div>
+  <div class="modal-box" style="background: var(--panel-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 20px; max-width: 500px; width: 90%;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 id="day-detail-title" style="font-size: 16px; font-weight: 600; color: var(--text);">Day Details</h3>
+      <button class="modal-close" id="day-detail-close-btn" title="Close" style="cursor: pointer; font-size: 16px;">✕</button>
+    </div>
+    <div class="modal-body" id="day-detail-body" style="max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+      <!-- Dynamic details go here -->
+    </div>
+  </div>
+</div>
 
+<script type="module" src="/static/js/navigation.js"></script>
 <script type="module" src="/static/js/calendar.js"></script>
 </body>
 </html>

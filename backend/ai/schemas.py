@@ -50,8 +50,11 @@ class AIContextPackage(BaseModel):
     behavioral_patterns: BehavioralSummary
     generated_at: str
     period_type: str  # 'weekly' or 'monthly'
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
     focus_stats: Optional[Dict[str, Any]] = None
     reminder_stats: Optional[Dict[str, Any]] = None
     scores: Optional[Dict[str, Any]] = None
     intelligence_snapshot: Optional[Dict[str, Any]] = None
     prediction_accuracy: Optional[Dict[str, Any]] = None
+    prediction_summary_markdown: Optional[str] = None

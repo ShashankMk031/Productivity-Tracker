@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Active Tasks - Productivity Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/strategic.css" />
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <div class="app">
+      <!-- Month Selection Header Bar (Standardized layout without redundant page titles) -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md);">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="ui-btn ui-btn-secondary" id="prev-month-btn" title="Previous month" style="padding: 0 12px; height: 32px;">‹</button>
+          <span id="month-label" style="font-size: 16px; font-weight: 700; color: var(--text); min-width: 140px; text-align: center;">— —</span>
+          <button class="ui-btn ui-btn-secondary" id="next-month-btn" title="Next month" style="padding: 0 12px; height: 32px;">›</button>
+          <button class="ui-btn ui-btn-secondary" id="today-btn" style="height: 32px; font-size: 12px;">Today</button>
+        </div>
+      </div>
+
+      <!-- Tracker grid container styled as standard UI card -->
+      <div class="ui-card tracker-container" style="padding: var(--space-md); margin-bottom: var(--space-lg);">
+        <div class="tracker-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); flex-wrap: wrap; gap: 12px;">
+          <h2 style="font-size: 15px; font-weight: 600; color: var(--text);">Habits Matrix</h2>
+          <div class="tracker-legend" aria-label="Task state legend" style="display: flex; gap: 12px; align-items: center; font-size: 11px;">
+            <span class="legend-item" style="display: flex; align-items: center; gap: 4px;">
+              <span class="legend-swatch legend-swatch--done" style="width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+              Done
+            </span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 4px;">
+              <span class="legend-swatch legend-swatch--pending" style="width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+              Not Done
+            </span>
+            <span class="legend-item" style="display: flex; align-items: center; gap: 4px;">
+              <span class="legend-swatch legend-swatch--inactive" style="width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+              Not Scheduled
+            </span>
+          </div>
+        </div>
+        
+        <div class="tracker-layout">
+          <div class="tracker-main">
+            <div id="tracker-body"></div>
+          </div>
+        </div>
+        
+        <div class="tracker-bottom-bar" style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-md); gap: 12px;">
+          <button class="ui-btn ui-btn-secondary" id="completed-toggle-btn">🏆 Completed Tasks</button>
+          <button class="ui-btn ui-btn-primary" id="add-task-btn-bottom">
+            + Add Task
+          </button>
+        </div>
+      </div>
+
+      <!-- Completed Tasks Section -->
+      <section class="archived-section hidden" id="archived-section" style="margin-top: 24px;">
+        <div class="ui-card" style="border-left: 3px solid var(--green);">
+          <div class="archived-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="trophy" style="font-size: 16px;">🏆</span>
+            <h2 style="font-size: 14px; font-weight: 600; color: var(--text);">Completed Tasks Archive</h2>
+          </div>
+          <div id="archived-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+      </section>
+
+      <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+        local-first · no cloud · no auth · phase 1
+      </footer>
+    </div>
+  </main>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal-backdrop" id="task-modal">
+  <div id="task-modal-overlay" class="ui-modal-overlay"></div>
+  <div class="modal-box" style="background: var(--panel-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 20px; max-width: 500px; width: 90%;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 id="task-modal-title" style="font-size: 16px; font-weight: 600; color: var(--text);">New Task / Habit</h3>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="icon-btn" id="task-modal-options-btn" title="Schedule Options" style="cursor: pointer; font-size: 16px;">⋮</button>
+        <button class="modal-close" id="task-modal-close-btn" title="Close" style="cursor: pointer; font-size: 16px;">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+      <input
+        type="text"
+        id="task-modal-input"
+        class="ui-form-input"
+        placeholder="e.g. Morning run, Read 20 pages, Meditate…"
+        maxlength="120"
+        autocomplete="off"
+      />
+      <div class="checkbox-row" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+        <input type="checkbox" id="task-modal-recurring" checked style="cursor: pointer;" />
+        <label for="task-modal-recurring" style="color: var(--muted); cursor: pointer;">Recurring monthly (auto carry-forward)</label>
+      </div>
+      
+      <div id="task-modal-schedule-section" style="display: none; margin-top: 8px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+        <h4 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 10px; font-weight: 600;">Schedule Days</h4>
+        <div id="task-modal-schedule-options">
+          <div id="task-modal-custom-days" style="display: flex; flex-wrap: wrap; gap: 12px;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" value="Mon"> <span>Mon</span></label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" value="Tue"> <span>Tue</span></label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" value="Wed"> <span>Wed</span></label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" value="Thu"> <span>Thu</span></label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" value="Fri"> <span>Fri</span></label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" value="Sat"> <span>Sat</span></label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" value="Sun"> <span>Sun</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+      <button class="ui-btn ui-btn-secondary" id="task-modal-cancel-btn">Cancel</button>
+      <button class="ui-btn ui-btn-primary" id="task-modal-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/static/js/navigation.js"></script>
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

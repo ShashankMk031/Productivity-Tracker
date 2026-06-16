@@ -47,6 +47,8 @@ def build_ai_prompt(context: AIContextPackage) -> str:
     # 1. Overview & Highlights
     lines.append("\n### 1. Overview & Progress Highlights")
     lines.append(f"- **Report Period Type**: {context.period_type.capitalize()}")
+    if context.period_start and context.period_end:
+        lines.append(f"- **Report Window**: {context.period_start} → {context.period_end}")
     lines.append(f"- **Generation Timestamp**: {context.generated_at}")
     lines.append(f"- **Active Task Count**: {context.behavioral_patterns.active_tasks_count}")
     lines.append(f"- **Global Completion Rate**: {context.behavioral_patterns.completion_rate}%")
@@ -97,12 +99,12 @@ def build_ai_prompt(context: AIContextPackage) -> str:
                     
     # 5. OS Dimension Metrics (Scoring, Focus, Reminders)
     lines.append("\n### 5. Productivity OS Core Metrics")
-    if context.scores:
-        lines.append("\n**Real-time Productivity Scores**:")
-        lines.append(f"- **Consistency Score**: {context.scores.get('consistency', 0)} / 100")
-        lines.append(f"- **Execution Score**: {context.scores.get('execution', 0)} / 100")
-        lines.append(f"- **Goal Progress Score**: {context.scores.get('goal_progress', 0)} / 100")
-        
+    period_metrics = context.analytics.get("metrics", {})
+    lines.append("\n**Period-Scoped Productivity Metrics**:")
+    lines.append(f"- **Completed Slots**: {period_metrics.get('completed_slots', 0)}")
+    lines.append(f"- **Missed Slots**: {period_metrics.get('missed_slots', 0)}")
+    lines.append(f"- **Perfect Days in Period**: {period_metrics.get('perfect_days', 0)}")
+
     if context.focus_stats:
         duration_sec = context.focus_stats.get('total_duration_sec', 0)
         hours = round(duration_sec / 3600.0, 2)
@@ -116,15 +118,10 @@ def build_ai_prompt(context: AIContextPackage) -> str:
         lines.append(f"- **Total Reminders Set**: {context.reminder_stats.get('total_reminders', 0)}")
         lines.append(f"- **Reminders Completed**: {context.reminder_stats.get('completed_reminders', 0)}")
 
-    if context.intelligence_snapshot:
-        import json
-        lines.append("\n### 6. Statistical Predictions & Forecasts (DO NOT GUESS. Use these statistical outputs directly)")
-        lines.append("```json\n" + json.dumps(context.intelligence_snapshot, indent=2) + "\n```")
-        
-    if context.prediction_accuracy:
-        import json
-        lines.append("\n### 7. Historical Prediction Accuracy")
-        lines.append("```json\n" + json.dumps(context.prediction_accuracy, indent=2) + "\n```")
+    if context.prediction_summary_markdown:
+        lines.append("\n### 6. Statistical Predictions & Forecasts")
+        lines.append("Use the following compact summaries directly. Do not invent risks that contradict them.")
+        lines.append(context.prediction_summary_markdown)
 
     lines.append("\n---")
     lines.append("\nPlease review this context package carefully and formulate your reflection report. Make sure to adhere EXACTLY to the mandated section headers. Do not output any additional preambles or chat messages, start immediately with the top level header (# Weekly Reflection or # Monthly Reflection).")

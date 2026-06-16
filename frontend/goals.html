@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strategic Goals - Productivity Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/strategic.css" />
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <div class="app">
+      <!-- Section header with primary button -->
+      <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-md);">
+        <button class="ui-btn ui-btn-primary" id="btn-add-goal">+ Add Goal</button>
+      </div>
+
+      <!-- Strategic Layer: Goals Grid using UI Cards -->
+      <section class="strategic-section" id="goals-section">
+        <div class="goals-grid" id="goals-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+          <!-- 3 columns: Long Term, Short Term, Step-Up -->
+          <div class="ui-card goals-column" id="goals-col-long" style="border-top: 3px solid var(--info);">
+            <div class="goals-col-header" style="font-size: 14px; font-weight: 700; color: var(--text); border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 12px;">Long-Term</div>
+            <div class="goals-list" id="goals-list-long"></div>
+          </div>
+          <div class="ui-card goals-column" id="goals-col-short" style="border-top: 3px solid var(--warning);">
+            <div class="goals-col-header" style="font-size: 14px; font-weight: 700; color: var(--text); border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 12px;">Short-Term</div>
+            <div class="goals-list" id="goals-list-short"></div>
+          </div>
+          <div class="ui-card goals-column" id="goals-col-stepup" style="border-top: 3px solid var(--green);">
+            <div class="goals-col-header" style="font-size: 14px; font-weight: 700; color: var(--text); border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 12px;">Step-Up</div>
+            <div class="goals-list" id="goals-list-stepup"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Completed Goals Archive -->
+      <section class="archived-section hidden" id="archived-section" style="margin-top: 24px;">
+        <div class="ui-card" style="border-left: 3px solid var(--green);">
+          <div class="archived-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="trophy" style="font-size: 16px;">🏆</span>
+            <h2 style="font-size: 14px; font-weight: 600; color: var(--text);">Completed Goals Archive</h2>
+          </div>
+          <div id="archived-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+      </section>
+
+      <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+        local-first · no cloud · no auth · phase 1
+      </footer>
+    </div>
+  </main>
+</div>
+
+<!-- Goal Modal -->
+<div class="modal-backdrop" id="goal-modal">
+  <div id="goal-modal-overlay" class="ui-modal-overlay"></div>
+  <div class="modal-box" style="background: var(--panel-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 20px; max-width: 500px; width: 90%;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 id="goal-modal-title" style="font-size: 16px; font-weight: 600; color: var(--text);">New Goal</h3>
+      <button class="modal-close" id="goal-modal-close-btn" title="Close" style="cursor: pointer; font-size: 16px;">✕</button>
+    </div>
+    <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+      <input type="text" id="goal-modal-input" class="ui-form-input" placeholder="Goal Title..." autocomplete="off" />
+      <div>
+        <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Priority / Category</label>
+        <select id="goal-modal-category" class="ui-form-input" style="height: 38px;">
+          <option value="Long-Term Goals">Long-Term Goals</option>
+          <option value="Short-Term Goals">Short-Term Goals</option>
+          <option value="Step-Up Goals">Step-Up Goals</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Description (Optional)</label>
+        <textarea id="goal-modal-description" class="ui-form-input" placeholder="Goal Description..." style="resize: vertical; min-height: 70px;"></textarea>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div>
+          <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Target Date</label>
+          <input type="date" id="goal-modal-date" class="ui-form-input" style="height: 38px;" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Progress (%)</label>
+          <input type="number" id="goal-modal-progress" class="ui-form-input" placeholder="0" min="0" max="100" style="height: 38px;" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Priority</label>
+          <input type="number" id="goal-modal-priority" class="ui-form-input" placeholder="0" min="0" style="height: 38px;" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+      <button class="ui-btn ui-btn-secondary" id="goal-modal-cancel-btn">Cancel</button>
+      <button class="ui-btn ui-btn-primary" id="goal-modal-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/static/js/navigation.js"></script>
+<script type="module" src="/static/js/goals.js"></script>
+</body>
+</html>

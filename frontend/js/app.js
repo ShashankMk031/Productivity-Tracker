@@ -17,6 +17,7 @@ import {
 } from "./date.js";
 import { DAY_ORDER, PRESET_OPTIONS, getPresetLabel, normalizeActiveDays, sameSchedule } from "./schedule.js";
 import { confirm as uiConfirm, initTaskModal, openTaskModal, toast } from "./ui.js";
+import { initKeyboardNav } from "./keyboard.js";
 
 const initialLogicalDate = getLogicalDateIST();
 const initialMonth = getMonthFromDateKey(initialLogicalDate);
@@ -40,7 +41,10 @@ async function init() {
   if (addTaskBtn) {
     addTaskBtn.addEventListener("click", (e) => { e.preventDefault(); openTaskModal(); });
   }
-  document.getElementById("add-task-btn-bottom").addEventListener("click", () => openTaskModal());
+  const addTaskBtnBottom = document.getElementById("add-task-btn-bottom");
+  if (addTaskBtnBottom) {
+    addTaskBtnBottom.addEventListener("click", () => openTaskModal());
+  }
   
   const prevMonthBtn = document.getElementById("prev-month-btn");
   const nextMonthBtn = document.getElementById("next-month-btn");
@@ -71,14 +75,18 @@ async function init() {
     });
   }
 
-  document.getElementById("completed-toggle-btn").addEventListener("click", () => {
-    state.archivedExpanded = !state.archivedExpanded;
-    renderArchivedVisibility();
-  });
+  const completedToggleBtn = document.getElementById("completed-toggle-btn");
+  if (completedToggleBtn) {
+    completedToggleBtn.addEventListener("click", () => {
+      state.archivedExpanded = !state.archivedExpanded;
+      renderArchivedVisibility();
+    });
+  }
   document.addEventListener("click", handleDocumentClick);
 
   await loadAll();
   initProductivityOS();
+  initKeyboardNav(state, loadAll, renderTracker, handleToggle, getLogicalToday);
 }
 
 async function loadAll() {
@@ -145,8 +153,14 @@ function jumpToToday() {
 
 function renderHeader() {
   const { data, year, month } = state;
-  document.getElementById("month-label").textContent = formatMonthLabel(year, month);
-  document.getElementById("day-reset-indicator").textContent = data.meta?.day_reset_label || "Day count resets at 04:00 AM (IST)";
+  const monthLabel = document.getElementById("month-label");
+  if (monthLabel) {
+    monthLabel.textContent = formatMonthLabel(year, month);
+  }
+  const dayReset = document.getElementById("day-reset-indicator");
+  if (dayReset) {
+    dayReset.textContent = data.meta?.day_reset_label || "Day count resets at 04:00 AM (IST)";
+  }
 }
 
 function renderTracker() {
@@ -190,6 +204,7 @@ function buildDayHeaderCells() {
 function buildTaskRow(task) {
   const row = document.createElement("article");
   row.className = "task-matrix-row";
+  row.dataset.taskId = task.id;
 
   row.appendChild(buildTaskInfo(task));
   row.appendChild(buildTaskDayArea(task));
@@ -519,9 +534,12 @@ async function renderArchived() {
 function renderArchivedVisibility() {
   const section = document.getElementById("archived-section");
   const toggle = document.getElementById("completed-toggle-btn");
+  if (!section) return;
   if (section.classList.contains("hidden")) return;
   section.style.display = state.archivedExpanded ? "block" : "none";
-  toggle.textContent = state.archivedExpanded ? "🏆 Completed Tasks ▲" : "🏆 Completed Tasks ▼";
+  if (toggle) {
+    toggle.textContent = state.archivedExpanded ? "🏆 Completed Tasks ▲" : "🏆 Completed Tasks ▼";
+  }
 }
 
 function handleDocumentClick() {

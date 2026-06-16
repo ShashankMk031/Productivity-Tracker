@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deadline Projects - Productivity Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/strategic.css" />
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <div class="app">
+      <!-- Standard action container -->
+      <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-md);">
+        <button class="ui-btn ui-btn-primary" id="btn-add-project">+ Add Project</button>
+      </div>
+
+      <!-- Projects Section -->
+      <section class="strategic-section" id="projects-section" style="margin-top: 16px;">
+        <div class="projects-grid" id="projects-grid">
+          <!-- Project cards injected here -->
+        </div>
+        
+        <div class="completed-projects-bar" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+          <button class="ui-btn ui-btn-secondary" id="completed-projects-toggle-btn">🏆 Completed Projects ▼</button>
+        </div>
+        
+        <div class="projects-grid hidden" id="completed-projects-grid" style="margin-top: 16px;">
+          <!-- Completed project cards injected here -->
+        </div>
+      </section>
+
+      <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+        local-first · no cloud · no auth · phase 1
+      </footer>
+    </div>
+  </main>
+</div>
+
+<!-- Project Modal -->
+<div class="modal-backdrop" id="project-modal">
+  <div id="project-modal-overlay" class="ui-modal-overlay"></div>
+  <div class="modal-box" style="background: var(--panel-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 20px; max-width: 500px; width: 90%;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 id="project-modal-title" style="font-size: 16px; font-weight: 600; color: var(--text);">New Project</h3>
+      <button class="modal-close" id="project-modal-close-btn" title="Close" style="cursor: pointer; font-size: 16px;">✕</button>
+    </div>
+    <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+      <input type="text" id="project-modal-input" class="ui-form-input" placeholder="Project Title..." autocomplete="off" />
+      <div>
+        <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Deadline</label>
+        <input type="date" id="project-modal-deadline" class="ui-form-input" style="height: 38px;" />
+      </div>
+      <div>
+        <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Description (Optional)</label>
+        <textarea id="project-modal-description" class="ui-form-input" placeholder="Project Description..." style="resize: vertical; min-height: 70px;"></textarea>
+      </div>
+      <div>
+        <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Linked Goal (Optional)</label>
+        <select id="project-modal-goal" class="ui-form-input" style="height: 38px; background: #060b0e;">
+          <option value="">-- No Link --</option>
+        </select>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+        <div>
+          <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Priority</label>
+          <input type="number" id="project-modal-priority" class="ui-form-input" placeholder="0" min="0" style="height: 38px;" />
+        </div>
+        <div>
+          <label style="font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Initial Milestones</label>
+          <input type="text" id="project-modal-milestones" class="ui-form-input" placeholder="e.g. Design, Build, Launch" style="height: 38px;" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+      <button class="ui-btn ui-btn-secondary" id="project-modal-cancel-btn">Cancel</button>
+      <button class="ui-btn ui-btn-primary" id="project-modal-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Milestone Modal -->
+<div class="modal-backdrop" id="milestone-modal">
+  <div id="milestone-modal-overlay" class="ui-modal-overlay"></div>
+  <div class="modal-box" style="background: var(--panel-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 20px; max-width: 500px; width: 90%;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 id="milestone-modal-title" style="font-size: 16px; font-weight: 600; color: var(--text);">Manage ToDos</h3>
+      <button class="modal-close" id="milestone-modal-close-btn" title="Close" style="cursor: pointer; font-size: 16px;">✕</button>
+    </div>
+    <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display:flex; gap: 8px;">
+        <input type="text" id="milestone-modal-input" class="ui-form-input" placeholder="New ToDo..." autocomplete="off" />
+        <button class="ui-btn ui-btn-primary" id="milestone-modal-add-btn">Add</button>
+      </div>
+      <div class="milestones-list" id="milestones-modal-list">
+        <!-- Milestones list -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/static/js/navigation.js"></script>
+<script type="module" src="/static/js/projects.js"></script>
+</body>
+</html>

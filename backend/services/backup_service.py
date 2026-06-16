@@ -71,7 +71,7 @@ def get_available_backups() -> list:
     ensure_backups_dir()
     backups = []
 
-    for root, dirs, files in os.walk(BACKUPS_DIR):
+    for root, _, files in os.walk(BACKUPS_DIR):
         for file in files:
             if file.endswith(".zip"):
                 full_path = Path(root) / file

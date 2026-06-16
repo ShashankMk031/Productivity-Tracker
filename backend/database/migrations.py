@@ -180,11 +180,89 @@ def _migration_0004_focus_sessions_and_reminders(conn: sqlite3.Connection):
     )
 
 
+def _migration_0005_prediction_records(conn: sqlite3.Connection):
+    """Persist prediction history and accuracy evaluation.
+
+    Reverse: DROP TABLE prediction_records.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS prediction_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            predictor_type TEXT NOT NULL,
+            target_type TEXT NOT NULL,
+            target_id INTEGER,
+            target_label TEXT NOT NULL,
+            predicted_on TEXT NOT NULL,
+            snapshot_path TEXT,
+            report_period TEXT NOT NULL DEFAULT 'manual',
+            horizon_days INTEGER NOT NULL DEFAULT 7,
+            predicted_risk TEXT NOT NULL,
+            confidence INTEGER NOT NULL DEFAULT 0,
+            reason TEXT DEFAULT '',
+            supporting_metrics_json TEXT DEFAULT '{}',
+            actual_outcome TEXT,
+            actual_risk TEXT,
+            accuracy_label TEXT,
+            accuracy_score REAL,
+            evaluated_at TEXT
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_prediction_records_unique_prediction
+        ON prediction_records (
+            predictor_type, target_type,
+            COALESCE(target_id, -1), target_label, predicted_on
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_prediction_records_predictor_eval
+        ON prediction_records (predictor_type, evaluated_at)
+        """
+    )
+
+
+def _migration_0006_daily_notes_and_goal_linking(conn: sqlite3.Connection):
+    """Add daily_notes table and link projects to goals.
+
+    Reverse: ALTER TABLE projects DROP COLUMN goal_id; DROP TABLE daily_notes.
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS daily_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT UNIQUE NOT NULL,
+            content TEXT NOT NULL
+        )
+        """
+    )
+    if not _column_exists(conn, "projects", "goal_id"):
+        conn.execute("ALTER TABLE projects ADD COLUMN goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL")
+
+
+def _migration_0007_report_ai_metadata(conn: sqlite3.Connection):
+    """Add ai_provider and ai_model columns to reports table.
+
+    Reverse: ALTER TABLE reports DROP COLUMN ai_provider; ALTER TABLE reports DROP COLUMN ai_model.
+    """
+    if not _column_exists(conn, "reports", "ai_provider"):
+        conn.execute("ALTER TABLE reports ADD COLUMN ai_provider TEXT")
+    if not _column_exists(conn, "reports", "ai_model"):
+        conn.execute("ALTER TABLE reports ADD COLUMN ai_model TEXT")
+
+
 MIGRATIONS = [
     (1, "baseline_schema", _migration_0001_baseline_schema),
     (2, "task_active_days", _migration_0002_task_active_days),
     (3, "project_completed_at", _migration_0003_project_completed_at),
     (4, "focus_sessions_and_reminders", _migration_0004_focus_sessions_and_reminders),
+    (5, "prediction_records", _migration_0005_prediction_records),
+    (6, "daily_notes_and_goal_linking", _migration_0006_daily_notes_and_goal_linking),
+    (7, "report_ai_metadata", _migration_0007_report_ai_metadata),
 ]
 
 

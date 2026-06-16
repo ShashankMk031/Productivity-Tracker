@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +8,7 @@
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="stylesheet" href="/static/css/strategic.css" />
   <style>
-    /* Premium Dashboard Styles */
+    /* Premium Dashboard Layouts aligned with tokens */
     .dashboard-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -25,7 +24,13 @@
       display: flex;
       flex-direction: column;
       position: relative;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .dashboard-panel:hover {
+      background: var(--panel-2);
+      border-color: var(--border-active);
     }
     
     .dashboard-panel::before {
@@ -45,7 +50,7 @@
     }
     
     .dashboard-panel--info::before {
-      background: #4a90e2;
+      background: var(--info);
     }
     
     .dashboard-panel h2 {
@@ -65,35 +70,7 @@
       margin-bottom: 24px;
     }
     
-    .metric-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    
-    .metric-card__label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .metric-card__value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    
-    .metric-card__subtext {
-      font-size: 12px;
-      color: var(--muted-2);
-    }
-    
-    /* Comparison Panel Specifics */
+    /* Comparison Workspace Specifics */
     .compare-form {
       display: flex;
       flex-direction: column;
@@ -118,28 +95,7 @@
       font-size: 11px;
       color: var(--muted);
       text-transform: uppercase;
-    }
-    
-    .btn-compare {
-      align-self: flex-end;
-      height: 44px;
-      padding: 0 20px;
-      font-size: 13px;
       font-weight: 600;
-      background: linear-gradient(180deg, #46b846, #3c9e3c);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      transition: opacity 0.2s;
-    }
-    
-    .btn-compare:hover {
-      opacity: 0.9;
     }
     
     .comparison-output {
@@ -169,6 +125,7 @@
       font-size: 11px;
       color: var(--muted);
       text-transform: uppercase;
+      font-weight: 600;
     }
     
     .scorecard-card__comparison {
@@ -216,6 +173,7 @@
       border-radius: 8px;
       padding: 4px;
       margin-bottom: 12px;
+      width: fit-content;
     }
     
     .scope-option {
@@ -229,7 +187,7 @@
     }
     
     .scope-option--active {
-      background: var(--border-2);
+      background: var(--panel-3);
       color: var(--text);
     }
     
@@ -253,21 +211,17 @@
   <div class="spinner"></div>
 </div>
 
-<div class="app">
+<div class="app-layout-shell">
+  <!-- Sidebar Navigation Container -->
+  <nav id="sidebar-nav-container"></nav>
 
-  <!-- Header -->
-  <header class="app-header">
-    <div class="header-top">
-      <div class="header-month">
-        <a href="/" class="nav-btn" style="text-decoration: none; font-size: 13px; padding: 6px 12px; height: 32px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 6px; background: rgba(255,255,255,0.03); color: #d9e0e6; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-          🏠 Tracker Dashboard
-        </a>
-        <h1 class="month-title" style="margin-left: 12px;">Reports Dashboard</h1>
-      </div>
-      
-      <div class="header-stats-grid">
-        <div class="report-dropdown-container" style="position: relative; display: inline-block; vertical-align: middle;">
-          <div class="dropdown-split" style="display: inline-flex; align-items: center; border-radius: 6px; overflow: hidden; background: linear-gradient(180deg, #46b846, #3c9e3c); height: 32px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+  <!-- Main Content Area -->
+  <main class="main-content-area">
+    <div class="app">
+      <!-- Report Generation dropdown split button -->
+      <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-md);">
+        <div class="report-dropdown-container" style="position: relative; display: inline-block;">
+          <div class="dropdown-split" style="display: inline-flex; align-items: center; border-radius: 6px; overflow: hidden; background: linear-gradient(180deg, #46b846, #3c9e3c); height: 32px; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
             <button id="generate-report-btn" style="padding: 0 12px; font-size: 13px; font-weight: 600; color: #fff; height: 100%; display: flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer;">📊 Generate Report</button>
             <button id="report-dropdown-toggle" style="padding: 0 8px; font-size: 8px; color: #fff; height: 100%; border-left: 1px solid rgba(255,255,255,0.2); background: transparent; border-top: none; border-bottom: none; border-right: none; cursor: pointer;">▼</button>
           </div>
@@ -277,174 +231,157 @@
             <button class="dropdown-item" id="btn-dropdown-history" style="text-align: left; padding: 10px 14px; font-size: 13px; color: var(--text); background: transparent; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; transition: background 0.2s;">📜 Report History</button>
           </div>
         </div>
-        <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
       </div>
-    </div>
-  </header>
 
-  <!-- KPI Overview metrics -->
-  <div class="metrics-row" style="margin-top: 24px;">
-    <!-- Weekly Latest -->
-    <div class="metric-card" style="border-left: 3px solid var(--green);">
-      <span class="metric-card__label">Latest Weekly Report</span>
-      <span class="metric-card__value" id="kpi-weekly-completion">--%</span>
-      <span class="metric-card__subtext" id="kpi-weekly-period">No historical reports</span>
-    </div>
-    <!-- Monthly Latest -->
-    <div class="metric-card" style="border-left: 3px solid #4a90e2;">
-      <span class="metric-card__label">Latest Monthly Report</span>
-      <span class="metric-card__value" id="kpi-monthly-completion">--%</span>
-      <span class="metric-card__subtext" id="kpi-monthly-period">No historical reports</span>
-    </div>
-    <!-- Global Stats -->
-    <div class="metric-card">
-      <span class="metric-card__label">Total Reports Generated</span>
-      <span class="metric-card__value" id="kpi-total-reports">--</span>
-      <span class="metric-card__subtext" id="kpi-reports-ratio">Weekly: -- · Monthly: --</span>
-    </div>
-  </div>
-
-  <!-- Primary General Relationship Widget (Occupies full width) -->
-  <div class="dashboard-panel" style="margin-top: 16px;">
-    <h2>📈 General Relationship Trend</h2>
-    <p style="font-size: 13px; color: var(--muted); margin-top: -8px; margin-bottom: 16px; line-height: 1.4;">
-      This chart maps weekly and monthly completion percentages chronologically to show your macro performance trends.
-      Use it to understand if your monthly averages are improving relative to your week-over-week performance consistency.
-    </p>
-    <div class="big-chart-container">
-      <canvas id="chart-general-relation"></canvas>
-    </div>
-  </div>
-
-  <!-- Dual Column Trend Dashboard -->
-  <div class="dashboard-grid">
-    <!-- Weekly progression panel -->
-    <div class="dashboard-panel dashboard-panel--accent">
-      <h2>📅 Weekly Reports History</h2>
-      <p style="font-size: 13px; color: var(--muted); margin-top: -8px; margin-bottom: 16px; line-height: 1.4;">
-        This chart displays the exact progression of your completion rates across consecutive weekly cycles.
-        Use it to identify short-term habits, capture week-over-week growth, and track your operational consistency.
-      </p>
-      <div class="small-chart-container">
-        <canvas id="chart-weekly-trend"></canvas>
-      </div>
-    </div>
-    
-    <!-- Monthly progression panel -->
-    <div class="dashboard-panel dashboard-panel--info">
-      <h2>🌙 Monthly Reports History</h2>
-      <p style="font-size: 13px; color: var(--muted); margin-top: -8px; margin-bottom: 16px; line-height: 1.4;">
-        This chart aggregates your completion percentages by month to highlight long-term behavioral evolution.
-        Use it to evaluate your strategic progress and observe how consistent habits evolve over seasonal cycles.
-      </p>
-      <div class="small-chart-container">
-        <canvas id="chart-monthly-trend"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Comparison Workspace Panel -->
-  <div class="dashboard-panel" style="margin-top: 24px;">
-    <h2>⚔️ Report Comparison Workspace</h2>
-    <p style="font-size: 13px; color: var(--muted); margin-top: -8px; margin-bottom: 16px; line-height: 1.4;">
-      Select any two weeks or months manually to perform a side-by-side comparative health check.
-      Observe variations in completion rates and streaks to understand consistency increases and identify focus drift.
-    </p>
-    
-    <div class="compare-form">
-      <div class="scope-selector">
-        <div class="scope-option scope-option--active" id="scope-weekly" data-scope="weekly">Weekly Periods</div>
-        <div class="scope-option" id="scope-monthly" data-scope="monthly">Monthly Periods</div>
-      </div>
-      
-      <div class="compare-row">
-        <div class="compare-field">
-          <label for="compare-period-a">Period A (Base)</label>
-          <select id="compare-period-a" class="modal-input" style="height: 44px; margin-top: 4px;"></select>
+      <!-- KPI Overview metrics using standard metric cards -->
+      <div class="metrics-row" style="margin-top: 16px;">
+        <div class="ui-metric-card" style="border-left: 3px solid var(--green);">
+          <span class="ui-metric-card__label">Latest Weekly Report</span>
+          <span class="ui-metric-card__value" id="kpi-weekly-completion">--%</span>
+          <span style="font-size: 12px; color: var(--muted);" id="kpi-weekly-period">No historical reports</span>
         </div>
-        <div class="compare-field">
-          <label for="compare-period-b">Period B (Compare)</label>
-          <select id="compare-period-b" class="modal-input" style="height: 44px; margin-top: 4px;"></select>
+        <div class="ui-metric-card" style="border-left: 3px solid var(--info);">
+          <span class="ui-metric-card__label">Latest Monthly Report</span>
+          <span class="ui-metric-card__value" id="kpi-monthly-completion">--%</span>
+          <span style="font-size: 12px; color: var(--muted);" id="kpi-monthly-period">No historical reports</span>
         </div>
-        <button class="btn-compare" id="btn-run-comparison">⚔️ Compare Periods</button>
+        <div class="ui-metric-card">
+          <span class="ui-metric-card__label">Total Reports Generated</span>
+          <span class="ui-metric-card__value" id="kpi-total-reports">--</span>
+          <span style="font-size: 12px; color: var(--muted);" id="kpi-reports-ratio">Weekly: -- · Monthly: --</span>
+        </div>
       </div>
-    </div>
-    
-    <!-- Comparison Outputs Container -->
-    <div class="comparison-output hidden" id="comparison-result-area">
-      <p style="font-size: 13px; color: var(--muted); margin-top: 0; margin-bottom: 16px; line-height: 1.4;">
-        This chart compares two selected weeks or months side-by-side for both task completion rates and streak metrics.
-        Use it to run detailed period-over-period reviews and measure the effectiveness of your cognitive and focus pivots.
-      </p>
-      <div class="scorecard-grid">
-        <!-- Completion Rate Scorecard -->
-        <div class="scorecard-card">
-          <span class="scorecard-card__title">Completion Rate</span>
-          <div class="scorecard-card__comparison">
-            <span class="scorecard-card__value" id="comp-completion-val">--% vs --%</span>
-            <span class="delta-pill" id="comp-completion-delta">--</span>
+
+      <!-- General Relationship Trend inside a chart wrapper -->
+      <div class="ui-chart-wrapper" style="margin-top: 16px; margin-bottom: 24px;">
+        <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px;">📈 General Relationship Trend</h2>
+        <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.4;">
+          This chart maps weekly and monthly completion percentages chronologically to show macro performance trends.
+        </p>
+        <div class="big-chart-container">
+          <canvas id="chart-general-relation"></canvas>
+        </div>
+      </div>
+
+      <!-- Dual Column Trend Grid -->
+      <div class="dashboard-grid" style="margin-bottom: 24px;">
+        <div class="dashboard-panel dashboard-panel--accent">
+          <h2>📅 Weekly Reports History</h2>
+          <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.4;">
+            Progression of completion rates across consecutive weekly cycles.
+          </p>
+          <div class="small-chart-container">
+            <canvas id="chart-weekly-trend"></canvas>
           </div>
         </div>
-        <!-- Max Streak Scorecard -->
-        <div class="scorecard-card">
-          <span class="scorecard-card__title">Max Streak</span>
-          <div class="scorecard-card__comparison">
-            <span class="scorecard-card__value" id="comp-streak-val">-- vs --</span>
-            <span class="delta-pill" id="comp-streak-delta">--</span>
+        
+        <div class="dashboard-panel dashboard-panel--info">
+          <h2>🌙 Monthly Reports History</h2>
+          <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.4;">
+            Aggregated monthly completion percentages showing long-term behavioral evolution.
+          </p>
+          <div class="small-chart-container">
+            <canvas id="chart-monthly-trend"></canvas>
           </div>
         </div>
       </div>
-      
-      <div style="height: 240px; position: relative; margin-top: 16px;">
-        <canvas id="chart-comparison-bars"></canvas>
-      </div>
-    </div>
-  </div>
 
-  <!-- Historical Reports Viewer Panel -->
-  <div class="dashboard-panel" style="margin-top: 24px; margin-bottom: 30px;">
-    <h2>📚 Historical Reports Viewer</h2>
-    <p style="font-size: 13px; color: var(--muted); margin-top: -8px; margin-bottom: 16px; line-height: 1.4;">
-      Browse your generated reports archive directly in-page. 
-      Select any report on the left panel to immediately load and read the full details, qualitative AI reflections, and coaching insights on the right.
-    </p>
-    
-    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px;">
-      <!-- Left list panel -->
-      <div style="flex: 1; min-width: 280px; max-height: 480px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;" id="embedded-report-list">
-        <!-- Reports injected here -->
-      </div>
-      
-      <!-- Right details content viewer -->
-      <div style="flex: 2; min-width: 320px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; border: 1px solid var(--border); max-height: 480px; overflow-y: auto;" id="embedded-report-viewer">
-        <div style="color: var(--muted); font-size: 13px; text-align: center; margin-top: 200px;">
-          Select a report from the list to view its full details here.
+      <!-- Comparison Workspace Panel -->
+      <div class="ui-card" style="margin-bottom: 24px; border-left: 3px solid var(--warning);">
+        <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px;">⚔️ Report Comparison Workspace</h2>
+        <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.4;">
+          Select any two weeks or months manually to perform a side-by-side comparative health check.
+        </p>
+        
+        <div class="compare-form">
+          <div class="scope-selector">
+            <div class="scope-option scope-option--active" id="scope-weekly" data-scope="weekly">Weekly Periods</div>
+            <div class="scope-option" id="scope-monthly" data-scope="monthly">Monthly Periods</div>
+          </div>
+          
+          <div class="compare-row">
+            <div class="compare-field">
+              <label for="compare-period-a">Period A (Base)</label>
+              <select id="compare-period-a" class="ui-form-input" style="height: 40px; margin-top: 4px;"></select>
+            </div>
+            <div class="compare-field">
+              <label for="compare-period-b">Period B (Compare)</label>
+              <select id="compare-period-b" class="ui-form-input" style="height: 40px; margin-top: 4px;"></select>
+            </div>
+            <button class="ui-btn ui-btn-primary" id="btn-run-comparison" style="align-self: flex-end; height: 40px;">⚔️ Compare Periods</button>
+          </div>
+        </div>
+        
+        <!-- Comparison Outputs Container -->
+        <div class="comparison-output hidden" id="comparison-result-area">
+          <div class="scorecard-grid">
+            <div class="scorecard-card">
+              <span class="scorecard-card__title">Completion Rate</span>
+              <div class="scorecard-card__comparison">
+                <span class="scorecard-card__value" id="comp-completion-val">--% vs --%</span>
+                <span class="delta-pill" id="comp-completion-delta">--</span>
+              </div>
+            </div>
+            <div class="scorecard-card">
+              <span class="scorecard-card__title">Max Streak</span>
+              <div class="scorecard-card__comparison">
+                <span class="scorecard-card__value" id="comp-streak-val">-- vs --</span>
+                <span class="delta-pill" id="comp-streak-delta">--</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style="height: 240px; position: relative; margin-top: 16px;">
+            <canvas id="chart-comparison-bars"></canvas>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <footer class="app-footer">
-    local-first · no cloud · no auth · phase 1
-  </footer>
+      <!-- Historical Reports Viewer Panel -->
+      <div class="ui-card" style="margin-bottom: 30px;">
+        <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px;">📚 Historical Reports Viewer</h2>
+        <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.4;">
+          Browse generated weekly and monthly reports from your local archive.
+        </p>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+          <!-- Left list panel -->
+          <div style="flex: 1; min-width: 260px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;" id="embedded-report-list">
+            <!-- Reports injected here -->
+          </div>
+          
+          <!-- Right details content viewer -->
+          <div style="flex: 2; min-width: 320px; background: rgba(0,0,0,0.15); border: 1px solid var(--border); padding: 20px; border-radius: 8px; max-height: 400px; overflow-y: auto;" id="embedded-report-viewer">
+            <div style="color: var(--muted); font-size: 13px; text-align: center; margin-top: 160px;">
+              Select a report from the list to view its full details here.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="app-footer" style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-2); text-align: center;">
+        local-first · no cloud · no auth · phase 1
+      </footer>
+    </div>
+  </main>
 </div>
 
-<!-- Report History List Modal (Supported for direct generator view overlays) -->
+<!-- Report History List Modal (For modal view fallback overlays) -->
 <div class="modal-backdrop" id="report-history-modal">
-  <div id="report-history-modal-overlay" style="position:absolute;inset:0;z-index:-1;"></div>
-  <div class="modal-content" style="max-width: 700px; width: 90%;">
-    <div class="modal-header">
-      <h3 id="report-history-title">Report History</h3>
-      <button class="modal-close" id="report-history-close-btn" title="Close">✕</button>
+  <div id="report-history-modal-overlay" class="ui-modal-overlay"></div>
+  <div class="modal-content" style="max-width: 700px; width: 90%; background: var(--panel-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 20px;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 id="report-history-title" style="font-size: 16px; font-weight: 600; color: var(--text);">Report History</h3>
+      <button class="modal-close" id="report-history-close-btn" title="Close" style="cursor: pointer; font-size: 16px;">✕</button>
     </div>
-    <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
       <div id="report-history-list" style="display:flex; flex-direction:column; gap:8px;">
         <!-- Reports injected here -->
       </div>
-      <div id="report-preview-container" class="hidden" style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
-        <button class="btn-secondary" id="report-preview-back-btn" style="margin-bottom: 12px;">← Back to list</button>
-        <div id="report-preview-content" style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 6px; font-size: 14px; line-height: 1.5; white-space: pre-wrap;"></div>
-        <div class="analytics-charts" style="margin-top: 16px;">
+      <div id="report-preview-container" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+        <button class="ui-btn ui-btn-secondary" id="report-preview-back-btn" style="margin-bottom: 12px;">← Back to list</button>
+        <div id="report-preview-content" style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 6px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; color: var(--text);"></div>
+        <div class="analytics-charts" style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="chart-container">
             <canvas id="preview-chart-weekly"></canvas>
           </div>
@@ -457,9 +394,8 @@
   </div>
 </div>
 
-<div id="toast" role="status" aria-live="polite"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="/static/js/navigation.js"></script>
 <script type="module" src="/static/js/reports_dashboard.js"></script>
 </body>
 </html>

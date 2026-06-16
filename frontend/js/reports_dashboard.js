@@ -632,8 +632,15 @@ async function showPreview(id, data) {
   const markdownText = data.markdown || data.markdown_content || "";
   const aiText = data.ai_reflection || "No raw AI reflection backup found for this report period.";
   
+  const aiProviderBadge = data.ai_provider ? `<span class="ui-pill" style="font-size:10px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(84, 209, 79, 0.15); border:1px solid rgba(84, 209, 79, 0.3); color:var(--green); text-transform:uppercase;">🤖 ${data.ai_provider} (${data.ai_model})</span>` : '';
+  
   previewContent.innerHTML = `
-    <div style="font-weight:700; font-size:18px; color:var(--text); margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">Report Details</div>
+    <div style="font-weight:700; font-size:18px; color:var(--text); margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="display:flex; align-items:center; gap:10px;">
+        Report Details
+        ${aiProviderBadge}
+      </span>
+    </div>
     
     <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
       <button id="modal-toggle-standard" style="background: var(--green); color: white; border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">📄 Standard Report</button>
@@ -867,9 +874,14 @@ async function loadEmbeddedPreview(id) {
   try {
     const data = await fetchAPI(`/reports/${id}`);
     
+    const aiProviderBadge = data.ai_provider ? `<span class="ui-pill" style="font-size:10px; font-weight:600; padding:2px 8px; border-radius:12px; background:rgba(84, 209, 79, 0.15); border:1px solid rgba(84, 209, 79, 0.3); color:var(--green); text-transform:uppercase;">🤖 ${data.ai_provider} (${data.ai_model})</span>` : '';
+    
     embeddedReportViewer.innerHTML = `
       <div style="font-weight:700; font-size:16px; color:var(--text); margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-        <span style="text-transform: capitalize;">${data.type || 'Report'} Archive Details</span>
+        <span style="text-transform: capitalize; display:flex; align-items:center; gap:10px;">
+          ${data.type || 'Report'} Archive Details
+          ${aiProviderBadge}
+        </span>
         <button class="btn-secondary" style="font-size: 11px; padding: 2px 8px; height: 24px;" id="embedded-print-btn">Print / Save</button>
       </div>
       

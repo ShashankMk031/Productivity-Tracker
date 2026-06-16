@@ -18,13 +18,3 @@ class GoalUpdate(BaseModel):
     target_date: Optional[str] = None
     completed: Optional[int] = None
 
-class GoalResponse(BaseModel):
-    id: int
-    title: str
-    description: str
-    category: str
-    progress: int
-    priority: int
-    target_date: Optional[str]
-    created_at: str
-    completed: int

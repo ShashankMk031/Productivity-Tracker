@@ -5,6 +5,7 @@ import sqlite3
 from .prediction_engine import generate_intelligence_snapshot
 from services.date_service import get_logical_date_ist
 from config import SNAPSHOT_DIR
+from .prediction_accuracy import persist_predictions
 
 def save_snapshot(db: sqlite3.Connection, report_period: str = "manual"):
     snapshot = generate_intelligence_snapshot(db)
@@ -38,6 +39,8 @@ def save_snapshot(db: sqlite3.Connection, report_period: str = "manual"):
     
     with open(file_path, "w") as f:
         json.dump(snapshot, f, indent=2)
+
+    persist_predictions(db, snapshot, str(file_path), report_period)
         
     return file_path
     

@@ -1,5 +1,4 @@
 import sqlite3
-import statistics
 
 def analyze_focus(db: sqlite3.Connection) -> dict:
     # We want to find the optimal focus duration based on 'completed tasks' correlation
@@ -10,10 +9,12 @@ def analyze_focus(db: sqlite3.Connection) -> dict:
     
     if not sessions:
         return {
+            "risk_level": "MEDIUM",
+            "warning_level": "WATCH",
             "best_focus_range": "Unknown",
             "task_completion_rate": "N/A",
             "reason": "Not enough focus session data to determine optimum.",
-            "supporting_metrics": {},
+            "supporting_metrics": {"sample_size": 0, "data_completeness": 0.0},
             "confidence": 0
         }
         
@@ -65,21 +66,32 @@ def analyze_focus(db: sqlite3.Connection) -> dict:
                 best_actual_rate = rate
 
     if best_bucket:
+        risk = "LOW"
+        warning = "INFO"
+        if "Short" in best_bucket or "Marathon" in best_bucket:
+            risk = "MEDIUM"
+            warning = "WATCH"
         return {
+            "risk_level": risk,
+            "warning_level": warning,
             "best_focus_range": best_bucket,
             "task_completion_rate": f"{int(best_actual_rate * 100)}%",
             "reason": f"Days with {best_bucket} sessions show the highest task completion correlation.",
             "supporting_metrics": {
-                "sessions_in_best_range": buckets[best_bucket]["sessions"]
+                "sessions_in_best_range": buckets[best_bucket]["sessions"],
+                "sample_size": len(sessions),
+                "data_completeness": round(min(len(sessions) / 10, 1), 2),
             },
             "confidence": min(85, sum(b["sessions"] for b in buckets.values()) * 5)
         }
     else:
         # Default fallback
         return {
+            "risk_level": "MEDIUM",
+            "warning_level": "WATCH",
             "best_focus_range": "Medium (30-50m)",
             "task_completion_rate": "N/A",
             "reason": "Insufficient correlation data. Suggesting standard Pomodoro.",
-            "supporting_metrics": {},
+            "supporting_metrics": {"sample_size": len(sessions), "data_completeness": round(min(len(sessions) / 10, 1), 2)},
             "confidence": 30
         }

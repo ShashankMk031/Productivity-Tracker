@@ -44,11 +44,14 @@ def _get_or_generate(report_type: str) -> APIResponse:
                 )
                 report_data["status"] = "regenerated"
                 return APIResponse(data=report_data, message="Previous report had a failed AI section. Report regenerated.")
+            row = db.execute("SELECT ai_provider, ai_model FROM reports WHERE id = ?", (existing["id"],)).fetchone()
             return APIResponse(data={
                 "id": existing["id"],
                 "type": report_type,
                 "markdown_content": get_report_markdown(db, existing["id"]),
                 "ai_reflection": get_report_ai_reflection(db, existing["id"]),
+                "ai_provider": row["ai_provider"] if row else None,
+                "ai_model": row["ai_model"] if row else None,
                 "status": "existing"
             }, message="Report already exists. Opening saved report.")
 
@@ -105,7 +108,7 @@ def get_report(report_id: int):
 
         ai_reflection = get_report_ai_reflection(db, report_id)
 
-        row = db.execute("SELECT type, generated_at, period_start, period_end, summary FROM reports WHERE id = ?", (report_id,)).fetchone()
+        row = db.execute("SELECT type, generated_at, period_start, period_end, summary, ai_provider, ai_model FROM reports WHERE id = ?", (report_id,)).fetchone()
 
         return APIResponse(data={
             "id": report_id,
@@ -115,5 +118,7 @@ def get_report(report_id: int):
             "period_end": row["period_end"],
             "summary": row["summary"],
             "markdown": markdown,
-            "ai_reflection": ai_reflection
+            "ai_reflection": ai_reflection,
+            "ai_provider": row["ai_provider"],
+            "ai_model": row["ai_model"]
         })

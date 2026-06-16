@@ -7,22 +7,87 @@ from .consistency_predictor import predict_consistency
 from .deadline_forecaster import forecast_deadlines
 from .focus_analyzer import analyze_focus
 
+
+
+
+def _historical_accuracy(db: sqlite3.Connection, predictor_type: str) -> tuple[float | None, int]:
+    try:
+        rows = db.execute(
+            """
+            SELECT accuracy_score
+            FROM prediction_records
+            WHERE predictor_type = ? AND accuracy_score IS NOT NULL
+            ORDER BY evaluated_at DESC
+            LIMIT 24
+            """,
+            (predictor_type,),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return None, 0
+    if not rows:
+        return None, 0
+    values = [float(row["accuracy_score"]) for row in rows]
+    return (sum(values) / len(values)) * 100, len(values)
+
+
+def _calibrate_confidence(
+    db: sqlite3.Connection,
+    predictor_type: str,
+    base_confidence: int,
+    sample_size: int,
+    data_completeness: float,
+) -> int:
+    history_accuracy, history_samples = _historical_accuracy(db, predictor_type)
+    parts = [
+        (base_confidence, 0.45),
+        (min(sample_size, 21) / 21 * 100, 0.25),
+        (max(0.0, min(data_completeness, 1.0)) * 100, 0.15),
+    ]
+    if history_accuracy is not None and history_samples > 0:
+        parts.append((history_accuracy, min(0.30, 0.05 * history_samples)))
+    total_weight = sum(weight for _, weight in parts)
+    score = sum(value * weight for value, weight in parts) / total_weight
+    return max(20, min(96, int(round(score))))
+
+
+def _apply_calibration(db: sqlite3.Connection, predictor_type: str, item: dict) -> dict:
+    metrics = item.setdefault("supporting_metrics", {})
+    sample_size = int(metrics.get("sample_size", 0) or 0)
+    data_completeness = float(metrics.get("data_completeness", 0) or 0)
+    item["confidence"] = _calibrate_confidence(
+        db,
+        predictor_type,
+        int(item.get("confidence", 50) or 50),
+        sample_size,
+        data_completeness,
+    )
+    metrics["confidence_basis"] = {
+        "historical_accuracy_used": _historical_accuracy(db, predictor_type)[0] is not None,
+        "sample_size": sample_size,
+        "data_completeness": data_completeness,
+    }
+    return item
+
+
 def generate_intelligence_snapshot(db: sqlite3.Connection) -> Dict[str, Any]:
-    burnout = detect_burnout(db)
+    burnout = _apply_calibration(db, "burnout", detect_burnout(db))
     consistency = predict_consistency(db)
     deadlines = forecast_deadlines(db)
-    focus = analyze_focus(db)
+    focus = _apply_calibration(db, "focus", analyze_focus(db))
     
     # Also forecast Goals
     goals = forecast_goals(db)
+    habits = [_apply_calibration(db, "consistency", item) for item in consistency["habits"]]
+    deadline_rows = [_apply_calibration(db, "deadline", item) for item in deadlines["deadlines"]]
+    goal_rows = [_apply_calibration(db, "goal", item) for item in goals["goals"]]
     
     return {
         "generated_at": datetime.now().isoformat(),
-        "prediction_version": "v1",
+        "prediction_version": "v2",
         "burnout": burnout,
-        "habits": consistency["habits"],
-        "deadlines": deadlines["deadlines"],
-        "goals": goals["goals"],
+        "habits": habits,
+        "deadlines": deadline_rows,
+        "goals": goal_rows,
         "focus": focus
     }
 
@@ -84,13 +149,19 @@ def forecast_goals(db: sqlite3.Connection) -> dict:
                 reason = "Progress is very slow (< 3.5% per week)."
                 
         forecasts.append({
+            "goal_id": g["id"],
             "goal_title": g["title"],
             "risk_level": risk,
             "warning_level": warning,
             "reason": reason,
             "supporting_metrics": {
                 "progress_per_week": f"{progress_per_week:.1f}% per week",
-                "estimated_days_left": int(estimated_days_left)
+                "estimated_days_left": int(estimated_days_left),
+                "progress_pct": progress_pct,
+                "days_elapsed": days_elapsed,
+                "days_remaining": days_remaining,
+                "sample_size": max(days_elapsed, 1),
+                "data_completeness": 1.0 if g["target_date"] else 0.7,
             },
             "confidence": min(85, 40 + days_elapsed * 2)
         })

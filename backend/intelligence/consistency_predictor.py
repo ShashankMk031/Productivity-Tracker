@@ -62,6 +62,7 @@ def predict_consistency(db: sqlite3.Connection) -> dict:
             reason += f" Streak is at {streak}, statistically vulnerable to breakage without high momentum."
 
         habit_trends.append({
+            "task_id": task["id"],
             "task_title": task["title"],
             "trend": trend,
             "risk_level": risk,
@@ -70,7 +71,9 @@ def predict_consistency(db: sqlite3.Connection) -> dict:
             "supporting_metrics": {
                 "current_streak": streak,
                 "completions_last_14d": comp_last_14,
-                "completions_prev_14d": comp_prev_14
+                "completions_prev_14d": comp_prev_14,
+                "sample_size": len(entries),
+                "data_completeness": round(min(len(entries) / 28, 1), 2),
             },
             "confidence": 80 if len(entries) >= 14 else 50
         })

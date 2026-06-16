@@ -1,10 +1,7 @@
-import json
-
 from config import TIMEZONE, DAY_RESET_HOUR, DAY_RESET_LABEL
 
 DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 FULL_WEEK = DAY_ORDER[:]
-FULL_WEEK_JSON = json.dumps(FULL_WEEK)
 
 # Aliases kept stable for existing imports (date_service, helpers).
 # The values themselves are owned by config.py.

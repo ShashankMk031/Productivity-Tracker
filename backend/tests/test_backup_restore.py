@@ -70,7 +70,9 @@ def test_restore_rejects_archive_without_database(workspace):
 
 
 def test_get_available_backups_sorted_newest_first(workspace, db):
+    import time
     backup_service.create_backup("manual")
+    time.sleep(1.1)
     backup_service.create_backup("manual")
     backups = backup_service.get_available_backups()
     assert len(backups) >= 2
