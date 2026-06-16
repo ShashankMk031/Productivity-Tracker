@@ -9,7 +9,7 @@ A local-first, offline-ready, GitHub-style daily habit tracker and strategic exe
 ### 1. Prerequisites
 - Python 3.10+
 - pip
-- (Optional) Local LLM runner like **LM Studio** loaded with `google/gemma-4-12b-qat` or similar OpenAI-compatible API running on `http://localhost:1234`.
+- (Optional) Local LLM runner like **LM Studio** loaded with `google/gemma-4-e4b` or similar OpenAI-compatible API running on `http://localhost:1234`.
 
 ### 2. Installation
 Clone the repository and install the backend dependencies:

@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 class LMStudioProvider(BaseProvider):
     def __init__(self, url: Optional[str] = None, model: Optional[str] = None, **kwargs):
         self.url = (url or "http://localhost:1234").rstrip('/')
-        default_model = model or "google/gemma-4-12b-qat"
+        default_model = model or "google/gemma-4-e4b"
         super().__init__("lmstudio", None, default_model, **kwargs)
 
     def generate(self, prompt: str, **kwargs) -> str:

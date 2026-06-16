@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-chat-v3"
-DEFAULT_LMSTUDIO_MODEL = "google/gemma-4-12b-qat"
+DEFAULT_LMSTUDIO_MODEL = "google/gemma-4-e4b"
 
 AI_FAILURE_PLACEHOLDER = "> [!WARNING]\n> AI generation failed to call models or models are unconfigured."
 
