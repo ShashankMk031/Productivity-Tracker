@@ -255,6 +255,90 @@ def _migration_0007_report_ai_metadata(conn: sqlite3.Connection):
         conn.execute("ALTER TABLE reports ADD COLUMN ai_model TEXT")
 
 
+def _migration_0008_reminders_nullable_and_sticky_notes(conn: sqlite3.Connection):
+    """Recreate reminders table to support nullable date/time, and create sticky_notes table.
+
+    Reverse: Recreate reminders to NOT NULL datetime, DROP TABLE sticky_notes.
+    """
+    # 1. Recreate reminders table
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reminders_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            due_date TEXT,
+            due_time TEXT,
+            datetime TEXT,
+            recurring TEXT NOT NULL DEFAULT 'none',
+            completed INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    
+    # Check if old table exists
+    table_exists = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='reminders'").fetchone()
+    if table_exists:
+        conn.execute(
+            """
+            INSERT INTO reminders_new (id, title, due_date, due_time, datetime, recurring, completed)
+            SELECT 
+                id, 
+                title, 
+                SUBSTR(datetime, 1, 10), 
+                CASE WHEN LENGTH(datetime) >= 16 THEN SUBSTR(datetime, 12, 5) ELSE NULL END, 
+                datetime, 
+                recurring, 
+                completed 
+            FROM reminders
+            """
+        )
+        conn.execute("DROP TABLE reminders")
+    
+    conn.execute("ALTER TABLE reminders_new RENAME TO reminders")
+    
+    # 2. Create sticky_notes table
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sticky_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL DEFAULT '',
+            color TEXT NOT NULL,
+            position_x REAL NOT NULL DEFAULT 100.0,
+            position_y REAL NOT NULL DEFAULT 100.0,
+            z_index INTEGER NOT NULL DEFAULT 1,
+            is_completed INTEGER NOT NULL DEFAULT 0,
+            is_draft INTEGER NOT NULL DEFAULT 0,
+            tag TEXT,
+            is_archived INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+
+
+def _migration_0009_sticky_notes_size_and_custom_colors(conn: sqlite3.Connection):
+    """Add width, height, and text_color columns to sticky_notes.
+
+    Reverse: ALTER TABLE sticky_notes DROP COLUMN width, height, text_color.
+    """
+    if not _column_exists(conn, "sticky_notes", "width"):
+        conn.execute("ALTER TABLE sticky_notes ADD COLUMN width REAL NOT NULL DEFAULT 240.0")
+    if not _column_exists(conn, "sticky_notes", "height"):
+        conn.execute("ALTER TABLE sticky_notes ADD COLUMN height REAL NOT NULL DEFAULT 135.0")
+    if not _column_exists(conn, "sticky_notes", "text_color"):
+        conn.execute("ALTER TABLE sticky_notes ADD COLUMN text_color TEXT NOT NULL DEFAULT '#1e293b'")
+
+
+def _migration_0010_sticky_notes_rotation(conn: sqlite3.Connection):
+    """Add rotation column to sticky_notes.
+
+    Reverse: ALTER TABLE sticky_notes DROP COLUMN rotation.
+    """
+    if not _column_exists(conn, "sticky_notes", "rotation"):
+        conn.execute("ALTER TABLE sticky_notes ADD COLUMN rotation REAL NOT NULL DEFAULT 0.0")
+
+
 MIGRATIONS = [
     (1, "baseline_schema", _migration_0001_baseline_schema),
     (2, "task_active_days", _migration_0002_task_active_days),
@@ -263,6 +347,9 @@ MIGRATIONS = [
     (5, "prediction_records", _migration_0005_prediction_records),
     (6, "daily_notes_and_goal_linking", _migration_0006_daily_notes_and_goal_linking),
     (7, "report_ai_metadata", _migration_0007_report_ai_metadata),
+    (8, "reminders_nullable_and_sticky_notes", _migration_0008_reminders_nullable_and_sticky_notes),
+    (9, "sticky_notes_size_and_custom_colors", _migration_0009_sticky_notes_size_and_custom_colors),
+    (10, "sticky_notes_rotation", _migration_0010_sticky_notes_rotation),
 ]
 
 

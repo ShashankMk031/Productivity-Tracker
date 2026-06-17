@@ -275,6 +275,21 @@ function getDaysRemaining(deadlineStr) {
 }
 
 // ── 4. REMINDERS SYSTEM ───────────────────────────────────────────────────────
+function formatDateLabel(dateStr) {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split("-");
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function formatTimeLabel(timeStr) {
+    if (!timeStr) return "";
+    const [hours, minutes] = timeStr.split(":");
+    const dummyDate = new Date();
+    dummyDate.setHours(parseInt(hours), parseInt(minutes));
+    return dummyDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 async function refreshRemindersList() {
     const listEl = document.getElementById("today-reminders-list");
     if (!listEl) return;
@@ -291,16 +306,28 @@ async function refreshRemindersList() {
         reminders.forEach(rem => {
             const el = document.createElement('div');
             el.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:8px 10px; border-radius:6px; border:1px solid var(--border);';
+            if (rem.is_overdue) {
+                el.style.borderLeft = '3px solid var(--danger)';
+            }
             
-            const remTime = new Date(rem.datetime).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+            let label = "";
+            if (rem.due_date && rem.due_time) {
+                label = `${formatDateLabel(rem.due_date)} @ ${formatTimeLabel(rem.due_time)}`;
+            } else if (rem.due_date) {
+                label = `Due: ${formatDateLabel(rem.due_date)}`;
+            } else if (rem.due_time) {
+                label = `At: ${formatTimeLabel(rem.due_time)}`;
+            } else {
+                label = "";
+            }
             
             el.innerHTML = `
                 <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
                     <input type="checkbox" class="reminder-complete-check" data-id="${rem.id}" style="cursor:pointer;" />
-                    <span style="font-size:12px; color:var(--text); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${rem.title}</span>
+                    <span style="font-size:12px; color:var(--text); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; ${rem.is_overdue ? 'color: var(--danger); font-weight: 500;' : ''}">${rem.title}</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px; white-space:nowrap;">
-                    <span style="font-size:10px; color:var(--muted); font-family:monospace;">${remTime}</span>
+                    <span style="font-size:10px; color:${rem.is_overdue ? 'var(--danger)' : 'var(--muted)'}; font-family:monospace;">${label}</span>
                     <button class="reminder-delete-btn" data-id="${rem.id}" style="background:transparent; border:none; color:var(--muted-2); cursor:pointer; font-size:10px; padding:2px;">✕</button>
                 </div>
             `;
@@ -323,33 +350,33 @@ async function refreshRemindersList() {
 async function handleAddReminder(e) {
     e.preventDefault();
     const titleInput = document.getElementById("reminder-title-input");
+    const dateInput = document.getElementById("reminder-date-input");
     const timeInput = document.getElementById("reminder-time-input");
     
     const title = titleInput ? titleInput.value.trim() : "";
-    const time = timeInput ? timeInput.value : "";
+    const dateVal = dateInput ? dateInput.value : "";
+    const timeVal = timeInput ? timeInput.value : "";
     
-    if (!title || !time) {
-        toast("Please provide both reminder title and time!", "error");
+    if (!title) {
+        toast("Please provide a reminder title!", "error");
         return;
     }
-    
-    // Format full YYYY-MM-DDTHH:MM:00 ISO string
-    const todayStr = getLogicalTodayIST();
-    const datetimeStr = `${todayStr}T${time}:00`;
     
     try {
         await fetchAPI('/reminders', {
             method: 'POST',
             body: JSON.stringify({
                 title,
-                datetime: datetimeStr,
+                due_date: dateVal || null,
+                due_time: timeVal || null,
                 recurring: 'none'
             })
         });
         
         toast("Reminder added successfully! 🔔");
         titleInput.value = "";
-        timeInput.value = "";
+        if (dateInput) dateInput.value = "";
+        if (timeInput) timeInput.value = "";
         
         await refreshRemindersList();
         refreshScores();
@@ -398,32 +425,37 @@ async function checkRemindersDaemon() {
         const reminders = await fetchAPI('/reminders/active');
         const now = new Date();
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        const nowDayStr = now.toISOString().split("T")[0];
+        const todayStr = getLogicalTodayIST();
         
         const overdueList = [];
         
         reminders.forEach(rem => {
-            const remDate = new Date(rem.datetime);
-            const remMinutes = remDate.getHours() * 60 + remDate.getMinutes();
-            const remDayStr = remDate.toISOString().split("T")[0];
-            
-            // Check if reminder is due in this exact minute and day matching today
-            if (remMinutes === nowMinutes && remDayStr === nowDayStr) {
-                if (isNotificationGranted) {
-                    new Notification(`🔔 Productivity Reminder: "${rem.title}"`, {
-                        body: `It's time to execute: ${rem.title}. Keep up the momentum!`,
-                        icon: '/static/favicon.svg'
-                    });
-                } else {
-                    toast(`🔔 Reminder: "${rem.title}"`, "info");
-                }
+            // Push notification checks for time-exact notifications:
+            const isToday = !rem.due_date || rem.due_date === todayStr;
+            if (isToday && rem.due_time) {
+                const [dueH, dueM] = rem.due_time.split(":");
+                const dueMinutes = parseInt(dueH) * 60 + parseInt(dueM);
                 
-                // Auto toggle completed on backend to avoid double alerts
-                fetchAPI(`/reminders/${rem.id}/toggle`, { method: 'POST' }).then(() => {
-                    refreshRemindersList();
-                });
-            } else if (now - remDate > 60000) {
-                // Reminder is in the past (more than 1 minute ago) and still active
+                if (dueMinutes === nowMinutes) {
+                    if (isNotificationGranted) {
+                        new Notification(`🔔 Productivity Reminder: "${rem.title}"`, {
+                            body: `It's time to execute: ${rem.title}. Keep up the momentum!`,
+                            icon: '/static/favicon.svg'
+                        });
+                    } else {
+                        toast(`🔔 Reminder: "${rem.title}"`, "info");
+                    }
+                    
+                    // Auto toggle completed on backend to avoid double alerts
+                    fetchAPI(`/reminders/${rem.id}/toggle`, { method: 'POST' }).then(() => {
+                        refreshRemindersList();
+                    });
+                    return;
+                }
+            }
+            
+            // Check overdue using the backend-calculated is_overdue property
+            if (rem.is_overdue) {
                 if (!alertedOverdueReminders.has(rem.id)) {
                     overdueList.push(rem);
                     alertedOverdueReminders.add(rem.id);

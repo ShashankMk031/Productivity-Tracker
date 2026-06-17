@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from database.db import get_db
@@ -14,7 +15,9 @@ router = APIRouter(prefix="/reminders", tags=["Reminders"])
 
 class AddReminderPayload(BaseModel):
     title: str
-    datetime: str
+    datetime: Optional[str] = None
+    due_date: Optional[str] = None
+    due_time: Optional[str] = None
     recurring: str = 'none'
 
 @router.get("")
@@ -32,7 +35,14 @@ def list_active_reminders():
 @router.post("")
 def create_reminder(payload: AddReminderPayload):
     with get_db() as db:
-        res = add_reminder(db, payload.title, payload.datetime, payload.recurring)
+        res = add_reminder(
+            db,
+            payload.title,
+            due_date=payload.due_date,
+            due_time=payload.due_time,
+            recurring=payload.recurring,
+            datetime_str=payload.datetime
+        )
         return APIResponse(data=res)
 
 @router.post("/{reminder_id}/toggle")

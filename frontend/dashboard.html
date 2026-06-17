@@ -91,10 +91,13 @@
           <h2 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">🔔 Active Tasks Reminders</h2>
           <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
             <!-- Quick Add Reminder -->
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
               <input type="text" id="reminder-title-input" class="ui-form-input" placeholder="Reminder title..." />
-              <input type="time" id="reminder-time-input" class="ui-form-input" style="width: 110px;" />
-              <button class="ui-btn ui-btn-primary" id="btn-add-reminder" style="padding: 0 14px;">Add</button>
+              <div style="display: flex; gap: 8px;">
+                <input type="date" id="reminder-date-input" class="ui-form-input" style="flex: 1;" />
+                <input type="time" id="reminder-time-input" class="ui-form-input" style="width: 110px;" />
+                <button class="ui-btn ui-btn-primary" id="btn-add-reminder" style="padding: 0 14px;">Add</button>
+              </div>
             </div>
             <!-- Active Reminders list -->
             <div id="today-reminders-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; flex: 1;">

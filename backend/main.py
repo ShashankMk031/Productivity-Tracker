@@ -23,6 +23,7 @@ from routes.reminders import router as reminders_router
 from routes.intelligence import router as intelligence_router
 from routes.settings import router as settings_router
 from routes.daily_notes import router as daily_notes_router
+from routes.board import router as board_router
 from services.logging_service import get_logger
 
 logger = get_logger(__name__)
@@ -94,6 +95,7 @@ app.include_router(reminders_router, prefix="/api")
 app.include_router(daily_notes_router, prefix="/api")
 app.include_router(intelligence_router, prefix="/api/intelligence")
 app.include_router(settings_router, prefix="/api/settings")
+app.include_router(board_router, prefix="/api")
 
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
@@ -132,6 +134,10 @@ def serve_calendar():
 @app.get("/settings")
 def serve_settings():
     return FileResponse(str(FRONTEND_DIR / "settings.html"))
+
+@app.get("/board")
+def serve_board():
+    return FileResponse(str(FRONTEND_DIR / "board.html"))
 
 @app.get("/favicon.ico")
 def serve_favicon():

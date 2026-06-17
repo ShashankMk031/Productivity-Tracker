@@ -29,22 +29,37 @@ def get_countdown_info(deadline_str: str) -> dict:
         urgency = "YELLOW"
         
     live = False
-    if days >= 2:
+    
+    # 1. More than 50 days
+    if days > 50:
+        weeks = days // 7
+        months = days // 30
+        text = f"{days} days left ({weeks} weeks, {months} month{'s' if months != 1 else ''})"
+    
+    # 2. Between 2 and 50 days
+    elif days >= 2:
         text = f"{days} days left"
-    else:
-        live = True
-        hours, remainder = divmod(total_seconds, 3600)
-        d = hours // 24
-        h = hours % 24
         
-        if d > 0:
-            text = f"{d} day{'s' if d > 1 else ''} {h} hour{'s' if h != 1 else ''} left"
+    # 3. Under 2 days (but >= 24 hours)
+    else:
+        hours, remainder = divmod(total_seconds, 3600)
+        
+        if hours >= 24:
+            live = True
+            d = hours // 24
+            h = hours % 24
+            text = f"1 day {h} hour{'s' if h != 1 else ''} left"
+            
+        # 4. Under 24 hours (but >= 1 hour)
+        elif hours >= 1:
+            live = True
+            text = f"{hours} hour{'s' if hours != 1 else ''} left"
+            
+        # 5. Under 1 hour
         else:
-            if hours > 0:
-                text = f"{h} hour{'s' if h != 1 else ''} left"
-            else:
-                minutes = remainder // 60
-                text = f"{minutes} min{'s' if minutes != 1 else ''} left"
+            live = True
+            minutes = remainder // 60
+            text = f"{minutes} minute{'s' if minutes != 1 else ''} left"
             
     return {
         "text": text,

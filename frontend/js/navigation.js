@@ -64,6 +64,11 @@ const PAGE_INFOS = {
     breadcrumb: 'Insights / Foresight Engine',
     description: 'View burnout warnings, accuracy dashboards, and predictive consistency analytics.'
   },
+  '/board': {
+    title: '📝 Sticky Notes Board',
+    breadcrumb: 'Board / Whiteboard Canvas',
+    description: 'A freeform canvas for brainstorming, organizing ideas, and auto-saving quick thoughts.'
+  },
   '/settings': {
     title: '⚙️ System Settings & Health',
     breadcrumb: 'Settings / Configuration',
@@ -87,6 +92,7 @@ function injectSidebar() {
         <li class="sidebar-menu-item ${currentPath === '/tasks' ? 'active' : ''}"><a href="/tasks">✅ Active Tasks</a></li>
         <li class="sidebar-menu-item ${currentPath === '/goals' ? 'active' : ''}"><a href="/goals">🎯 Strategic Goals</a></li>
         <li class="sidebar-menu-item ${currentPath === '/projects' ? 'active' : ''}"><a href="/projects">🏁 Deadline Projects</a></li>
+        <li class="sidebar-menu-item ${currentPath === '/board' ? 'active' : ''}"><a href="/board">📝 Sticky Board</a></li>
         <li class="sidebar-menu-item ${currentPath === '/calendar' ? 'active' : ''}"><a href="/calendar">📅 Monthly Calendar</a></li>
         <li class="sidebar-menu-item ${currentPath === '/reports' ? 'active' : ''}"><a href="/reports">📈 Reports Dashboard</a></li>
         <li class="sidebar-menu-item ${currentPath === '/insights' ? 'active' : ''}"><a href="/insights">🧠 Intelligence Insights</a></li>
